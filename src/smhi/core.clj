@@ -782,12 +782,10 @@
 		          											 info-title-style
 		          											 v
 		          											 info-value-style))
-		          w-gust       (-> @weather-data first second :gust)
-		          w-speed      (-> @weather-data first second :ws)
-		        	  ]
+		          cloud-cover  (-> (v-frmt :tcc_mean) (/ 8) (* 100) int)]
 				(dit 0 0 "Temp"           (str (v-frmt :t) degree-char))
 				(dit 1 0 "Humidity"       (str (v-frmt :r) "%"))
-				(dit 2 0 "Cloud"          (str (v-frmt :tcc_mean) "%"))
+				(dit 2 0 "Cloud"          (str cloud-cover "%"))
 				(dit 3 0 "Wind Speed m/s" (str (v-frmt :ws) "-" (v-frmt :gust)))
 				(dit 0 1 "Pressure"       (str (v-frmt :msl)))
 				(dit 1 1 "Rain mm/h"      (str (v-frmt :pmedian)))
