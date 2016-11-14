@@ -177,34 +177,42 @@
 								 :stroke 2
 								 :background (color 128 128 128 128)))
 
+; return current dat & time as a string
 (defn now-str
 	[]
 	(f/unparse (f/formatters :mysql) (l/local-now)))
 
+; the current weather forecast
 (def weather-data (atom nil))
 
+; the current radar image
 (def radar-data (atom nil))
 
+; read a directory
 (defn get-dir-list
 	[dir re]
 	(filter #(re-find re %) (map str (file-seq (io/file dir)))))
 
+; get list of available background images
 (defn get-background-list
 	[]
 	(get-dir-list image-dir #"background-\d+\.(png|jpg|jpeg)$"))
 
+; pick a random background
 (defn get-background-name
 	[]
 	(let [backgrounds (get-background-list)
 		  num-bg      (count backgrounds)]
 		(nth backgrounds (rand-int num-bg))))
 
+; load an image and set it as background
 (defn set-background
 	[]
 	(let [bg-name  (get-background-name)
 		  bg-image (read-image bg-name)]
 		(swap! landscape-pic (fn [x] bg-image))))
 
+; map wind direction angle to text
 (defn wind-dir-to-str
 	[dir]
 	(let [between (fn [x [l h]] (and (>= x l) (< x h)))
@@ -219,6 +227,7 @@
 			  [[337.5 360.0] "N"]]]
 		(->> wd (filter #(between dir (first %))) first second)))
 
+; filter SMHI data based on one specific unit
 (defn filter-param
 	[param units]
 	(let [param-key (keyword (:name param))]
@@ -226,24 +235,24 @@
 			{param-key (first (:values param))}
 			{})))
 
+; filter SMHI data based on the units map
 (defn filter-param-map
 	[params units]
 	(apply merge (map #(filter-param % units) params)))
 
-(defn mk-weather-request
+; send a weather forecast request to SMHI
+(defn send-weather-request
 	[config]
-	(str (get config :weather-url)
-		 "/api/category/" (get config :category)
-		 "/version/" (get config :version)
-		 "/geotype/point/lon/" (get config :longitude)
-		 "/lat/" (get config :latitude)
-		 "/data.json"))
+	(let [req-str (str (get config :weather-url)
+					   "/api/category/" (get config :category)
+					   "/version/" (get config :version)
+					   "/geotype/point/lon/" (get config :longitude)
+					   "/lat/" (get config :latitude)
+					   "/data.json")]
+		(with-open [rdr (io/reader req-str)]
+			(json/read-str (clojure.string/join (line-seq rdr)) :key-fn keyword))))
 
-(defn send-request
-	[config]
-	(with-open [rdr (io/reader (mk-weather-request config))]
-		(json/read-str (clojure.string/join (line-seq rdr)) :key-fn keyword)))
-
+; get latest radar image from SMHI
 (defn get-radar-image
 	[url]
 	(let [img     (javax.imageio.ImageIO/read (io/as-url url))
@@ -256,16 +265,15 @@
 		(.dispose g2d)
 		simg))
 
+; fill a graphics context with color
 (defn fill
-	"fill a graphics context with color
-
-	Returns g2d"
 	[^java.awt.Graphics2D g2d color width height]
 	(do
     	(.setPaint g2d color)
         (.fillRect g2d 0 0 width height)
         g2d))
 
+; draw a list of lines
 (defn draw-line-seq
 	[^java.awt.Graphics2D g2d points draw-style]
 	(doseq [pair (partition 2 1 points)]
@@ -276,6 +284,7 @@
         		  (-> pair second second))
         	draw-style)))
 
+; draw a (possibly scaled) image within a widget
 (defn draw-image
 	[widget ^java.awt.Graphics2D g2d image match valign halign iname]
 	{:pre [(some #{match}  '(:both :width :height :min :max))
@@ -321,15 +330,16 @@
         (catch Exception e
     		(println e))))
 
+; the window size map
 (def lbl-map (atom nil))
 
+; print changed window sizes for logging
 (defn update-lbl-map
 	[m k v]
-	;(println "update-lbl-map: " m k v)
 	(swap! lbl-map (fn [x] (assoc m k v)))
-	;(println "new atom: " @lbl-map))
 	(println (format "%s New size: %-16s width: %4d height: %4d" (now-str) k (:width v) (:height v))))
 
+; keep track of window sizes for logging
 (defn lbl-info
 	[object ^java.awt.Graphics2D g2d]
 	(let [id     (id-of object)
@@ -345,6 +355,7 @@
 						(update-lbl-map @lbl-map id {:width width :height height})))
 				(update-lbl-map @lbl-map id {:width width :height height})))))
 
+; calculate all the values needed for drawing the temerature graph
 (defn get-temp-scaling
 	[data top bottom]
 	(let [min-temp       (apply min (map second data))
@@ -364,38 +375,18 @@
 		;(println info)
 		info))
 
-(defn mk-points
-	[data x-start x-width y-scale y-min height going-right]
-	(let [x-step     (* (/ x-width (dec (count data))) (if going-right 1 -1))
-		  zero-limit (fn [x] (if (< x 0) 0 (int x)))]
-		(loop [acc       []
-			   current-x (if going-right x-start (dec (+ x-start x-width -1)))
-			   the-list  (map #(- height (* y-scale (- % y-min))) data)]
-			(if (empty? the-list)
-				acc
-				(recur (conj acc (vector (zero-limit current-x)
-								         (zero-limit (first the-list))))
-					   (+ current-x x-step)
-					   (rest the-list))))))
-
+; extract all the data for a specific parameter
 (defn get-param
 	[data param]
 	(map #(vector (first %) (-> % second param)) data))
 
+; convert hour to 0-360
 (defn hour-to-angle
 	[h]
 	{:pre [(and (>= h 0) (< h 24))]}
 	(* (/ (mod h 12) 12) 360))
 
-(defn sixty-to-one
-	[x]
-	(/ x 60.0))
-
-(defn sixty-to-angle
-	[x]
-	{:pre [(and (>= x 0) (< x 60))]}
-	(* (/ x 60) 360))
-
+; rotate an image around its center
 (defn center-rotate
 	[image angle]
 	(let [width       (.getWidth image)
@@ -411,6 +402,7 @@
 			(draw (image-shape 0 0 image) nil))
         buffer))
 
+; draw the overall background
 (defn draw-background
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -420,6 +412,7 @@
 		(catch Exception e
     		(println e))))
 
+; draw the radar picture
 (defn draw-radar
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -448,16 +441,17 @@
         (catch Exception e
     		(println e))))
 
+; draw the clock
 (defn draw-clock
 	[widget ^java.awt.Graphics2D g2d]
 	(try
 		(lbl-info widget g2d)
     	(let [now          (l/local-now)
-              minute       (+ (t/minute now) (sixty-to-one (t/second now)))
-              hour         (+ (t/hour now) (sixty-to-one minute))
-              rotated-hour (center-rotate hour-hand (hour-to-angle hour))
-              rotated-min  (center-rotate min-hand (sixty-to-angle minute))
-              rotated-sec  (center-rotate sec-hand (sixty-to-angle (t/second now)))]
+              minute       (+ (t/minute now) (/ (t/second now) 60))
+              hour         (+ (t/hour now) (/ minute 60))
+              rotated-hour (center-rotate hour-hand (* hour 6))
+              rotated-min  (center-rotate min-hand (* minute 6))
+              rotated-sec  (center-rotate sec-hand (* (t/second now) 6))]
             (draw-image widget g2d clock-pic    :min :center :center "clock")
             (draw-image widget g2d rotated-hour :min :center :center "hour")
         	(draw-image widget g2d rotated-min  :min :center :center "minute")
@@ -465,6 +459,7 @@
         (catch Exception e
     		(println e))))
 
+; draw graphic forecast of rain
 (defn draw-rain
 	[^java.awt.Graphics2D g2d data top bottom]
 	(let [rain-data  (get-param data :pmedian)
@@ -478,6 +473,7 @@
         	(apply polygon all-points)
         	rain-style)))
 
+; draw graphic forecast of temperature
 (defn draw-temp
 	[^java.awt.Graphics2D g2d data info top bottom]
 	(let [points (map #(vector (first %)
@@ -489,6 +485,7 @@
 		  			  data)]
 		(draw-line-seq g2d points temp-style)))
 
+; draw graphic forecast of wind
 (defn draw-wind
 	[^java.awt.Graphics2D g2d data top bottom]
 	(let [w-speed   (get-param data :ws)
@@ -505,6 +502,7 @@
         	(apply polygon (concat g-points s-points))
         	wind-style)))
 
+; calculate width of string (in pixels)
 (defn string-width
 	[^java.awt.Graphics2D g2d txt-style txt]
 	;(println "string-width:" (type (:font txt-style)) (:font txt-style))
@@ -512,12 +510,14 @@
 		  txt-width    (.stringWidth font-metrics txt)]
 		txt-width))
 
+; calculate height of string (in pixels)
 (defn string-height
 	[^java.awt.Graphics2D g2d txt-style]
 	(let [font-metrics (.getFontMetrics g2d (:font txt-style))
 		  txt-height   (.getHeight font-metrics)]
 		txt-height))
 
+; draw text with a circle background
 (defn draw-text
 	[^java.awt.Graphics2D g2d x y txt txt-style left-side]
 	(let [txt-width    (string-width g2d txt-style txt)
@@ -533,6 +533,7 @@
 			  (string-shape txt-x txt-y txt)
 			  txt-style)))
 
+; draw axises for forecast graphics (and scales)
 (defn draw-axis
 	[^java.awt.Graphics2D g2d data width top bottom temp-info]
 	(let [left-x       (dec left-axis-width)
@@ -628,6 +629,7 @@
 		0
 		(int (/ (apply + coll) (count coll)))))
 
+; draw the weather symbols on the forecast
 (defn draw-graph-symbols
 	[^java.awt.Graphics2D g2d data top width]
 	(let [symb-data    (get-param data :Wsymb)
@@ -646,6 +648,7 @@
 				  			   (get tiny-symbol-pics (nth grp-avg i)))
 				  nil))))
 
+; draw the forecast graphics
 (defn draw-curve
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -669,6 +672,7 @@
     (catch Exception e
       (println e))))
 
+; draw the compass and wind direction
 (defn draw-wind-dir
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -681,6 +685,7 @@
     (catch Exception e
       (println e))))
 
+; draw the symbol for current weather
 (defn draw-w-symbol
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -691,32 +696,9 @@
     (catch Exception e
       (println e))))
 
-(def lbl-text-height (/ wnow-height 4))
-
-(defn mk-info-label
-	[lbl-tag x y]
-	(label 	:id 		lbl-tag
-			:bounds		[(* wnow-width x) (+ (* wnow-height y) lbl-text-height) wnow-width (- wnow-height lbl-text-height)]
-			:font 		lbl-txt-font
-			:foreground lbl-txt-color 
-			:background (color 128 128 128 64)
-			:halign 	:center
-			:valign     :center
-			:paint 		lbl-info))
-
-(defn mk-info-label-txt
-	[txt x y]
-	(label 	:bounds		[(* wnow-width x) (* wnow-height y) wnow-width lbl-text-height]
-			:font 		lbl-info-txt-font
-			:foreground lbl-txt-color 
-			:background (color 128 128 128 64)
-			:halign 	:center
-			:valign     :center
-			:text       txt))
-
+; draw background, title and value for one section of now info
 (defn draw-info-text
 	[^java.awt.Graphics2D g2d center-x width top height title title-style value value-style]
-	;(println "draw-info-text:" top title)
 	(let [t-width       (string-width  g2d title-style title)
 		  t-height      (string-height g2d title-style)
 		  v-width       (string-width  g2d value-style (str value))
@@ -759,8 +741,7 @@
 			  value-style)
 		))
 
-;   temp   humidity  cloud  wind-speed   symbol
-; pressure   rain   thunder wind-dir-1 wind-dir-2
+; draw all the parts of the now info
 (defn draw-info
 	[widget ^java.awt.Graphics2D g2d]
 	(try
@@ -794,20 +775,13 @@
 			))
 		(catch Exception e (println e))))
 
+; create the frame
 (def smhi-frame
 	(window
 		:width horiz-res
 		:height vert-rez
 		:content
 			(xyz-panel :items [
-;				(mk-info-label-txt "Temp"      0 0)
-;				(mk-info-label :lbl-temp       0 0)
-;				(mk-info-label-txt "Humidity"  1 0)
-;				(mk-info-label :lbl-humidity   1 0)
-;				(mk-info-label-txt "Cloud"     2 0)
-;				(mk-info-label :lbl-cloud      2 0)
-;				(mk-info-label-txt "Thunder"   3 0)
-;				(mk-info-label :lbl-thunder    3 0)
 				(label	:id 		:lbl-symbol
 						:bounds		[(* wnow-width 4) (* wnow-height 0) wnow-width wnow-height]
 						:foreground lbl-txt-color 
@@ -816,12 +790,6 @@
 						:bounds		[(* wnow-width 4) (* wnow-height 1) wnow-width wnow-height]
 						:foreground lbl-txt-color 
 						:paint 		draw-wind-dir)
-;				(mk-info-label-txt "Wind Dir"  1 1)
-;				(mk-info-label :lbl-wind-dir   1 1)
-;				(mk-info-label-txt "Wind Speed m/s" 2 1)
-;				(mk-info-label :lbl-wind-speed 2 1)
-;				(mk-info-label-txt "Rain mm/h"      3 1)
-;				(mk-info-label :lbl-rain       3 1)
 
 				(label	:id 		:info  ; info
 						:bounds		[0 0 info-width info-height]
@@ -841,16 +809,16 @@
 						:paint 		draw-background)
 			])))
 
+; convert the SMHI timestamp to minutes from midnight (or -1 if it's too old)
 (defn mk-delta-time
 	[m now day-start]
 	(let [map-time    (f/parse (:validTime m))
-		  mk-dt       (fn [x] (f/unparse (f/formatters :mysql) x))
 		  map-minutes (if (t/before? map-time now)
 						  -1
 						  (t/in-minutes (t/interval day-start map-time)))]
-		;(println "mm:" (mk-dt map-time) "now:" (mk-dt now) "ds:" (mk-dt day-start) "min" map-minutes)
 		map-minutes))
 
+; interpolate a Y value between 2 X,Y pairs
 (defn mk-intermediate-value
 	[x1 y1 x2 y2 target-x is-int]
 	(let [k        (/ (- y2 y1) (- x2 x1))
@@ -860,12 +828,13 @@
 			(int target-y)
 			target-y)))
 
+; create a new entry between prev-entry and next-entry
 (defn mk-intermediate
 	[prev-entry next-entry ts]
-	(let [prev-ts (first prev-entry)
-		  next-ts (first next-entry)
-		  prev-map (second prev-entry)
-		  next-map (second next-entry)
+	(let [prev-ts   (first prev-entry)
+		  next-ts   (first next-entry)
+		  prev-map  (second prev-entry)
+		  next-map  (second next-entry)
 		  prev-keys (keys prev-map)]
 		(loop [map-keys (keys prev-map)
 			   acc      {}]
@@ -882,11 +851,12 @@
 					   		  						 (get (get units (first map-keys)) :is-int)))))
 		)))
 
+; process the SMHI data and convert timestamp to delta minutes
 (defn process-data
 	[]
 	(let [now  		(t/now)
   		  day-start (t/today-at 00 00)
-  		  resp  	(:timeSeries (send-request smhi-config))
+  		  resp  	(:timeSeries (send-weather-request smhi-config))
   		  filtered-resp (map #(vector (mk-delta-time % now day-start)
   		  							  (filter-param-map (:parameters %) units))
   		  							  resp)
@@ -897,44 +867,21 @@
   			(let [next-entry (nth valid-resp (count week-resp))
   				  prev-entry (last week-resp)
   				  new-entry  (mk-intermediate prev-entry next-entry (dec week-minutes))]
-  				;(println new-entry)
   				(conj (vec week-resp) new-entry))
   			week-resp)
   		))
-
-(defn dump-rain
-	[]
-	(do
-		(println "datetime" "pmin" "pmax" "spp" "pcat" "pmean" "pmedian")
-		(doseq [row @weather-data]
-			(println (first row)
-					 (-> row second :pmin) 
-					 (-> row second :pmax) 
-					 (-> row second :spp) 
-					 (-> row second :pcat) 
-					 (-> row second :pmean) 
-					 (-> row second :pmedian)))))
-
-(defn update-conditions
-	[]
-	(if (not (nil? @weather-data))
-		(repaint! [(select smhi-frame [:#info])
-			       (select smhi-frame [:#wind-dir])
-			       (select smhi-frame [:#lbl-symbol])])))
-
-(defn clock-timer-fn
-	[x]
-	(repaint! (select smhi-frame [:#clock])))
 
 (defn weather-timer-fn
 	[x]
 	(try
 		(let [weather (process-data)]
 			(println (now-str) "weather-timer-fn: successfully got new forecast")
-			;(println weather)
 			(swap! weather-data (fn [x] weather))
-			(update-conditions)
-			(repaint! (select smhi-frame [:#forecast])))
+			(if (not (nil? @weather-data))
+				(repaint! [(select smhi-frame [:#info])
+			    		   (select smhi-frame [:#wind-dir])
+			    		   (select smhi-frame [:#lbl-symbol])
+						   (select smhi-frame [:#forecast])])))
 		(catch Exception e
     		(println (now-str) "weather-timer-fn exception: " e))))
 
@@ -951,16 +898,15 @@
     		(println (now-str) "radar-timer-fn exception: " e))))
 
 (defn -main
-	"I don't do a whole lot ... yet."
   	[& args]
   	(set-background)
 	(-> smhi-frame show!) ; full-screen!)
-	(st/timer clock-timer-fn)
+	(st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
 	(st/timer weather-timer-fn 
 			  :initial-delay (* 1000 2) 
 			  :delay (* 1000 60 30))
 	(st/timer radar-timer-fn 
 			  :delay (* 1000 60 5))
 	;(.setUndecorated smhi-frame true)
-	(.setFullScreenWindow (.getDefaultScreenDevice (GraphicsEnvironment/getLocalGraphicsEnvironment)) smhi-frame)
+	;(.setFullScreenWindow (.getDefaultScreenDevice (GraphicsEnvironment/getLocalGraphicsEnvironment)) smhi-frame)
 )
