@@ -424,19 +424,23 @@
 	        	  map-height   (.getHeight map-pic)
 	        	  mid-x        (/ (- width map-width) 2)
 	              mid-y        (/ (- height map-height) 2)
+	              border-size  10
+	              ;a            (fill (.createGraphics @radar-data) (color 128 128 128) (.getWidth @radar-data) (.getHeight @radar-data))
 	              sub-radar    (.getSubimage @radar-data
 	              							 radar-sub-upper-left-x 
 	              							 radar-sub-upper-left-y 
 	              							 radar-sub-width 
 	              							 radar-sub-height)
-	              width-ratio  (/ map-width radar-sub-width)
-	              height-ratio (/ map-height radar-sub-height)
+	              width-ratio  (/ (- map-width (* border-size 2)) radar-sub-width)
+	              height-ratio (/ (- map-height (* border-size 2)) radar-sub-height)
 	              buffer       (buffered-image map-width map-height)
 	          	  buffer-g2d   (.createGraphics buffer)
 	          	  aaa          (-> buffer-g2d (draw (image-shape 0 0 map-pic) nil)
 	          	  							  (scale width-ratio height-ratio)
-	          	  							  (draw (image-shape 0 0 sub-radar) nil))]
+	          	  							  (draw (image-shape 1 1 sub-radar) nil))]
 	            ;(println "lw: " width " lh: " height " mw: " map-width " mh: " map-height)
+	            ;(println "rw:" radar-sub-width "rh:" radar-sub-height "wr:" width-ratio "hr:" height-ratio)
+	            ;(println "ofs:" (/ border-size width-ratio))
 	            (draw-image widget g2d buffer :min :center :center "radar")))
         (catch Exception e
     		(println e))))
@@ -664,6 +668,7 @@
 	        	  x-data       (map #(vector (-> % first (* x-scale) (+ left-axis-width) int) (second %)) @weather-data)
 	        	  temp-data    (map #(vector (first %) (->> % second (* 1.0))) (get-param x-data :t))
 			  	  temp-info    (get-temp-scaling temp-data top bottom)]
+			  	(fill g2d (color 128 128 128 128) width height)
 	        	(draw-axis g2d x-data width top bottom temp-info)
 	        	(draw-rain g2d x-data top bottom)
 	        	(draw-wind g2d x-data top bottom)
