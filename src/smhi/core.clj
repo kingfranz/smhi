@@ -176,6 +176,7 @@
 (def info-bg-style        (style :foreground (color 32 32 32)
 								 :stroke 2
 								 :background (color 128 128 128 128)))
+(def date-txt-style       (style :foreground :white :font lbl-info-txt-font))
 
 ; return current dat & time as a string
 (defn now-str
@@ -480,6 +481,8 @@
 		  all-points (concat [[(-> points first first) bottom]]
 		  					 points
 		  					 [[(-> points last first) bottom]])]
+		;(println "all-points:" (map #(- bottom (second %)) all-points))
+		;(println "data:" (map #(second %) rain-data))
 		(draw g2d
         	(apply polygon all-points)
         	rain-style)))
@@ -644,7 +647,7 @@
 	[]
 	(flatten (for [d    (range 0 graph-days)
 				   :let [d24 (* d 24 60)
-		  		   		 x   [(+ d24 6) (+ d24 12) (+ d24 18)]]]
+		  		   		 x   [(+ d24 (* 6 60)) (+ d24 (* 12 60)) (+ d24 (* 18 60))]]]
 				x)))
 
 (defn pick-closer
@@ -676,6 +679,9 @@
 		  day-width     (/ width graph-days)
 		  symbol-width  (.getWidth (get tiny-symbol-pics 0))
 		  symbol-offset (/ (- day-width (* symbol-width symbs-per-day)) (inc symbs-per-day))]
+		;(println "symb-values:" symb-values)
+		;(println "symb-targets:" (mk-symbol-targets))
+		;(println "symb-data:" symb-data)
 		(doseq [day (range graph-days)]
 			(doseq [symb-idx (range symbs-per-day)]
 				(let [x   (+ left-side (* day-width day) symbol-offset (* symb-idx (+ symbol-width symbol-offset)))
@@ -685,6 +691,23 @@
 					;(println "x:" (int x) "y:" y "ii:" ii)
 					(draw g2d (image-shape x top img) nil))))))
 
+(defn mk-date-strings
+	[]
+	(map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %))) (range graph-days)))
+
+(defn draw-dates
+	[^java.awt.Graphics2D g2d top height left-side width]
+	(let [date-strings (mk-date-strings)
+		  day-width    (/ width graph-days)]
+		(doseq [date-idx (range graph-days)
+			    :let [dstr-width (string-width g2d date-txt-style (nth date-strings date-idx))
+			    	  dstr-height (string-height g2d date-txt-style)]]
+			(draw g2d
+				  (string-shape (- (+ left-side (/ day-width 2) (* day-width date-idx)) (/ dstr-width 2))
+				  				(+ top (/ dstr-height 2) (/ height 2) -3)
+				  				(nth date-strings date-idx))
+				  date-txt-style))))
+
 ; draw the forecast graphics
 (defn draw-curve
 	[widget ^java.awt.Graphics2D g2d]
@@ -693,8 +716,9 @@
 		(if (not (nil? @weather-data))
 	    	(let [width        (.getWidth widget)
 	        	  height       (.getHeight widget)
+	        	  date-height  30
 	        	  top          axis-width
-	        	  bottom       (- height axis-width)
+	        	  bottom       (- height date-height axis-width)
 	        	  graph-height (- bottom top)
 	        	  width-avail  (- width left-axis-width right-axis-width)
 	        	  x-scale      (/ width-avail week-minutes)
@@ -703,10 +727,11 @@
 			  	  temp-info    (get-temp-scaling temp-data top bottom)]
 			  	(fill g2d (color 128 128 128 128) width height)
 	        	(draw-axis g2d x-data width top bottom temp-info)
-	        	(draw-rain g2d x-data top bottom)
+	        	(draw-rain g2d x-data top (- bottom 3))
 	        	(draw-wind g2d x-data top bottom)
 	        	(draw-temp g2d temp-data temp-info top bottom)
-	        	(draw-graph-symbols g2d @weather-data top width-avail left-axis-width)))
+	        	(draw-graph-symbols g2d @weather-data top width-avail left-axis-width)
+	        	(draw-dates g2d (- height date-height) date-height left-axis-width width-avail)))
     (catch Exception e
       (println e))))
 
@@ -807,9 +832,9 @@
 				(dit 2 0 "Cloud"          (str cloud-cover "%"))
 				(dit 3 0 "Wind Speed m/s" (str (v-frmt :ws) "-" (v-frmt :gust)))
 				(dit 0 1 "Pressure"       (str (v-frmt :msl)))
-				(dit 1 1 "Rain mm/h"      (wind-dir-to-str (v-frmt :pmedian)))
+				(dit 1 1 "Rain mm/h"      (str (v-frmt :pmedian)))
 				(dit 2 1 "Thunder"        (str (v-frmt :tstm) "%"))
-				(dit 3 1 "Wind Dir"       (str (v-frmt :wd)))
+				(dit 3 1 "Wind Dir"       (wind-dir-to-str (v-frmt :wd)))
 			))
 		(catch Exception e (println e))))
 
