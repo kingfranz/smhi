@@ -182,6 +182,12 @@
 	[]
 	(f/unparse (f/formatters :mysql) (l/local-now)))
 
+(defn abs
+	[x]
+	(if (< x 0)
+		(- 0 x)
+		x))
+
 ; the current weather forecast
 (def weather-data (atom nil))
 
@@ -634,24 +640,50 @@
 		0
 		(int (/ (apply + coll) (count coll)))))
 
+(defn mk-symbol-targets
+	[]
+	(flatten (for [d    (range 0 graph-days)
+				   :let [d24 (* d 24 60)
+		  		   		 x   [(+ d24 6) (+ d24 12) (+ d24 18)]]]
+				x)))
+
+(defn pick-closer
+	[[x1 y1] t [x2 y2]]
+	(let [dist1 (abs (- t x1))
+		  dist2 (abs (- t x2))]
+		(if (< dist1 dist2)
+			y1
+			y2)))
+
+(defn find-closest 
+	"doc-string"
+	[target symb-data]
+	(loop [symbols symb-data]
+		(if (empty? symbols)
+			nil
+			(if (or (> (-> symbols first first) target) (= (count symbols) 1))
+				(-> symbols first second)
+				(if (and (< (-> symbols first first) target) (> (-> symbols second first) target))
+					(pick-closer (first symbols) target (second symbols))
+					(recur (rest symbols)))))))
+
 ; draw the weather symbols on the forecast
 (defn draw-graph-symbols
-	[^java.awt.Graphics2D g2d data top width]
-	(let [symb-data    (get-param data :Wsymb)
-		  group-length (/ week-minutes graph-days 2)
-		  group-width  (/ width (* graph-days 2))
-		  group-offset (- (/ group-width 2) (/ (.getWidth (get tiny-symbol-pics 0)) 2))
-		  get-data     (fn [coll] (map second coll))
-		  groups       (for [minutes (range 0 week-minutes group-length)]
-		  			   	   (filter #(and (>= (first %) minutes) (< (first %) (+ minutes group-length)))
-		  			   	   		   symb-data))
-		  grp-avg      (map #(avg (get-data %)) groups)]
-		(doseq [i (range (* graph-days 2))]
-			(draw g2d
-				  (image-shape (+ left-axis-width (* i group-width) group-offset)
-				  			   top
-				  			   (get tiny-symbol-pics (nth grp-avg i)))
-				  nil))))
+	[^java.awt.Graphics2D g2d data top width left-side]
+	(let [symb-data     (get-param data :Wsymb)
+		  symb-values   (map #(find-closest % symb-data) (mk-symbol-targets))
+		  symbs-per-day 3
+		  day-width     (/ width graph-days)
+		  symbol-width  (.getWidth (get tiny-symbol-pics 0))
+		  symbol-offset (/ (- day-width (* symbol-width symbs-per-day)) (inc symbs-per-day))]
+		(doseq [day (range graph-days)]
+			(doseq [symb-idx (range symbs-per-day)]
+				(let [x   (+ left-side (* day-width day) symbol-offset (* symb-idx (+ symbol-width symbol-offset)))
+					  y   top
+					  ii  (nth symb-values (+ (* day symbs-per-day) symb-idx))
+					  img (get tiny-symbol-pics ii)]
+					;(println "x:" (int x) "y:" y "ii:" ii)
+					(draw g2d (image-shape x top img) nil))))))
 
 ; draw the forecast graphics
 (defn draw-curve
@@ -674,7 +706,7 @@
 	        	(draw-rain g2d x-data top bottom)
 	        	(draw-wind g2d x-data top bottom)
 	        	(draw-temp g2d temp-data temp-info top bottom)
-	        	(draw-graph-symbols g2d @weather-data top width-avail)))
+	        	(draw-graph-symbols g2d @weather-data top width-avail left-axis-width)))
     (catch Exception e
       (println e))))
 
