@@ -4,6 +4,90 @@
 		"selected_items":
 		[
 			[
+				"width",
+				"width-avail"
+			],
+			[
+				"defn",
+				"defn"
+			],
+			[
+				"graph",
+				"graph-days"
+			],
+			[
+				"wind-d",
+				"wind-dir-to-str"
+			],
+			[
+				"radar",
+				"radar-sub-height"
+			],
+			[
+				"height",
+				"height-ratio"
+			],
+			[
+				"bord",
+				"border-size"
+			],
+			[
+				"cen",
+				"center-border"
+			],
+			[
+				"col",
+				"column-width"
+			],
+			[
+				"deg",
+				"degree-char"
+			],
+			[
+				"ba",
+				"background"
+			],
+			[
+				"val",
+				"value-height"
+			],
+			[
+				"tit",
+				"title-height"
+			],
+			[
+				"va",
+				"value-height"
+			],
+			[
+				"ti",
+				"title-height"
+			],
+			[
+				"title",
+				"title-height"
+			],
+			[
+				"draw-i",
+				"draw-info-text"
+			],
+			[
+				"txt",
+				"txt-style"
+			],
+			[
+				"string",
+				"string-width"
+			],
+			[
+				"w-",
+				"w-gust"
+			],
+			[
+				"lbl-in",
+				"lbl-info-txt-font"
+			],
+			[
 				"re",
 				"require"
 			],
@@ -28,10 +112,6 @@
 				"series"
 			],
 			[
-				"val",
-				"validTime"
-			],
-			[
 				"Pre",
 				"Precip"
 			],
@@ -51,24 +131,93 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "src/smhi/core.clj",
+			"settings":
+			{
+				"buffer_size": 36136,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
 	],
-	"build_system": "",
+	"build_system": "Packages/Enhanced Clojure/Leiningen.sublime-build",
 	"build_system_choices":
 	[
+		[
+			[
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					""
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Documentation"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Clean"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Run"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Test"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Re-test"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Uberjar"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Jar"
+				],
+				[
+					"Packages/Enhanced Clojure/Leiningen.sublime-build",
+					"Lein: Check"
+				]
+			],
+			[
+				"Packages/Enhanced Clojure/Leiningen.sublime-build",
+				"Lein: Test"
+			]
+		]
 	],
-	"build_varint": "",
+	"build_varint": "Lein: Test",
 	"command_palette":
 	{
-		"height": 0.0,
+		"height": 52.0,
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"lein",
+				"Build With: Leiningen - Lein: Run"
+			],
+			[
+				"pa",
+				"Package Control: Install Package"
+			],
+			[
+				"",
+				"Build With: Leiningen"
+			],
+			[
+				"gi",
+				"Package Control: Install Package"
+			]
 		],
-		"width": 0.0
+		"width": 449.0
 	},
 	"console":
 	{
-		"height": 0.0,
+		"height": 146.0,
 		"history":
 		[
 		]
@@ -84,10 +233,14 @@
 	},
 	"expanded_folders":
 	[
-		"/home/soren/Linux/clojure/smhi"
+		"/home/soren/Linux/clojure/smhi",
+		"/home/soren/Linux/clojure/smhi/src",
+		"/home/soren/Linux/clojure/smhi/src/smhi"
 	],
 	"file_history":
 	[
+		"/home/soren/Linux/clojure/core.clj",
+		"/home/soren/Linux/clojure/smhi/src/smhi/core.clj",
 		"/home/soren/Linux/clojure/seesaw/src/seesaw/dev.clj",
 		"/home/soren/Linux/PiClock/Clock/PyQtPiClock.py",
 		"/home/soren/Linux/PiClock/Clock/Config.py",
@@ -104,7 +257,7 @@
 	],
 	"find":
 	{
-		"height": 26.0
+		"height": 34.0
 	},
 	"find_in_files":
 	{
@@ -118,6 +271,26 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"loop",
+			"filter-param-map",
+			"mk-weather-req",
+			"send-request",
+			"fill",
+			"draw-line-seq",
+			"lbl-info",
+			"get-temp-sca",
+			"mk-points",
+			"get-param",
+			"sixty-to",
+			"update-cond",
+			"dump-rain",
+			"mk-intermed",
+			"mk-dt",
+			"lbl-text-he",
+			"mk-info-label-txt",
+			"mk-info-label",
+			"color",
+			"form",
 			"abstract",
 			"abstract-panel",
 			"layout",
@@ -160,8 +333,38 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "src/smhi/core.clj",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 36136,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								35505,
+								35505
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Clojure/Clojure.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 5585.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -171,7 +374,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 34.0
 	},
 	"layout":
 	{
@@ -196,11 +399,19 @@
 		]
 	},
 	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 118.0
+	},
 	"output.find_results":
 	{
 		"height": 0.0
 	},
-	"pinned_build_system": "",
+	"output.git":
+	{
+		"height": 118.0
+	},
+	"pinned_build_system": "Packages/Enhanced Clojure/Leiningen.sublime-build",
 	"project": "smhi.sublime-project",
 	"replace":
 	{
@@ -241,7 +452,7 @@
 	"show_minimap": false,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 213.0,
 	"status_bar_visible": true,
 	"template_settings":
