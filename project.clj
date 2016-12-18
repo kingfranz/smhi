@@ -4,11 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
-  				 [seesaw "1.4.6-SNAPSHOT"]
-           [com.taoensso/timbre "4.7.4"]
-  				 [org.clojure/data.json "0.2.6"]
-  				 [org.clojure/math.numeric-tower "0.0.4"]
-  				 [clj-time "0.12.0"]]
+                 [seesaw "1.4.6-SNAPSHOT"]
+                 [com.taoensso/timbre "4.7.4"]
+                 [org.clojure/data.json "0.2.6"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
+                 [clj-time "0.12.0"]]
   :main ^:skip-aot smhi.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
