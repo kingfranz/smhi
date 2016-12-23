@@ -8,6 +8,7 @@
                  [com.taoensso/timbre "4.7.4"]
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/math.numeric-tower "0.0.4"]
+                 [http-kit "2.2.0"]
                  [clj-time "0.12.0"]]
   :main ^:skip-aot smhi.core
   :target-path "target/%s"
