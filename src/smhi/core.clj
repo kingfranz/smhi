@@ -38,11 +38,11 @@
     (:require [clj-time.local             :as l])
     (:require [clojure.math.numeric-tower :as math])
     (:require [seesaw.timer               :as st :except boolean?])
-    (:require [seesaw.core        :except boolean?])
-    (:require [seesaw.border        :except boolean?])
-    (:require [seesaw.graphics        :except boolean?])
-    (:require [seesaw.color        :except boolean?])
-    (:require [seesaw.font        :except boolean?])
+    (:require [seesaw.core        :refer :all])
+    (:require [seesaw.border        :refer :all])
+    (:require [seesaw.graphics        :refer :all])
+    (:require [seesaw.color        :refer :all])
+    (:require [seesaw.font        :refer :all])
     (:require [org.httpkit.client         :as http])
     (:require [taoensso.timbre            :as timbre
                :refer [log  trace  debug  info  warn  error  fatal  report
@@ -733,16 +733,24 @@
             (error "---------------------------------------------------")
             (error (Exception. e))))))
 
+(defn set-screen
+    [the-frame args]
+    (let [num-args (count args)
+          arg-num  (if (and (> num-args 0) (is-pos-int-str? (first args))) (parse-int (first args)) 0)
+          screens  (get-screens)
+          screen-num (if (>= arg-num (count screens)) 0 arg-num)]
+        (move! the-frame :to [(:x (nth screens screen-num)) (:y (nth screens screen-num))])))
+
 (defn -main
     [& args]
     (timbre/merge-config!
-     {:appenders {:spit (appenders/spit-appender {:fname "./clock.log"
+        {:appenders {:spit (appenders/spit-appender {:fname "./clock.log"
                                                   :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
     (set-background)
-  (-> smhi-frame show!)
-  (st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
-  (st/timer weather-timer-fn
+    (-> smhi-frame (set-screen args) show!)
+    (st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
+    (st/timer weather-timer-fn
         :initial-delay (* 1000 2)
         :delay (* 1000 60 30))
-  (st/timer radar-timer-fn
+    (st/timer radar-timer-fn
         :delay (* 1000 60 5)))

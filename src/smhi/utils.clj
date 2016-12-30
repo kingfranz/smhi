@@ -3,6 +3,7 @@
     (:require [clojure.data.json          :as json])
     (:require [clojure.java.io            :as io])
     (:require [clojure.spec               :as s])
+    (:require [clojure.string             :as str])
     (:require [clj-time.core              :as t])
     (:require [clj-time.format            :as f])
     (:require [clj-time.local             :as l])
@@ -19,8 +20,8 @@
     (:use seesaw.color)
     (:use seesaw.font)
     (:import (javax.swing JFrame JLabel)
-           (java.awt Color Font FontMetrics GraphicsEnvironment)
-           (java.io ByteArrayInputStream)))
+             (java.awt Color Font FontMetrics GraphicsEnvironment)
+             (java.io ByteArrayInputStream)))
 
 (def landscape-pic (atom nil))
 
@@ -92,7 +93,33 @@
     [^java.awt.Graphics2D g2d txt-style]
     (.getHeight (.getFontMetrics g2d (:font txt-style))))
 
-  ; the window size map
+(defn get-screens
+    []
+    (let [ge     (GraphicsEnvironment/getLocalGraphicsEnvironment)
+          sd     (.getScreenDevices ge)
+          bounds (fn [x] (.getBounds (.getDefaultConfiguration x)))]
+        (map #(hash-map :x      (.x (bounds %))
+                        :y      (.y (bounds %))
+                        :width  (.width (bounds %))
+                        :height (.height (bounds %)))
+             sd)))
+
+(defn not-nil?
+    [params]
+    (not (nil? params)))
+
+(defn parse-int [s]
+    (Integer. (re-find  #"\d+" (str/trim s))))
+
+(defn is-string?
+    [s]
+    (and (not-nil? s) (string? s) (> (count (str/trim s)) 0)))
+
+(defn is-pos-int-str?
+    [s]
+    (and (is-string? s) (re-matches #"\d+" (str/trim s))))
+
+; the window size map
 (def lbl-map (atom nil))
 
   ; print changed window sizes for logging
