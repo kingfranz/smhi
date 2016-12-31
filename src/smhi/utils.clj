@@ -199,3 +199,51 @@
                        13 (read-image "symbol-13As.png")
                        14 (read-image "symbol-14As.png")
                        15 (read-image "symbol-15As.png")})
+
+(defn rotate-file
+    [log path prefix num-files]
+    (let [dir     (get-dir-list path (re-pattern (str prefix "-\\d+\\.log")))
+          ;a1 (println "dir:" dir)
+          extract (fn [x] (str/replace x #"^([^-]+-)([0-9]+)(\.log)$" "$2"))
+          numbers (map extract dir)
+          ;a3 (println "numbers:" numbers)
+          biggest (->> numbers (map parse-int) sort last)
+          ;a4 (println "biggest:" biggest)
+          new-big (str path prefix "-" (if (nil? biggest) 0 (inc biggest)) ".log")]
+        ;(println "new-big:" new-big)
+        (.renameTo log (io/file new-big))
+        (.createNewFile log)))
+
+(defn max-size-appender
+    "Returns a Rolling file appender. Opts:
+    :path      - logfile path.
+    :prefix    - first part of filename.
+    :max-size  - max size in bytes.
+    :num-files - max number of files."
+    [& [{:keys [path prefix max-size num-files]
+         :or   {path      "./"
+                prefix    "rolling"
+                max-size  1000000
+                num-files 10}}]]
+        {:enabled?   true
+         :async?     false
+         :min-level  nil
+         :rate-limit nil
+         :output-fn  :inherit
+         :fn
+            (fn [data]
+                (let [{:keys [instant output_]} data
+                      output-str (force output_)
+                      filename   (str path prefix ".log")]
+                    (when-let [log (io/file filename)]
+                        (try
+                            (when-not (.exists log)
+                                (io/make-parents log))
+                            (if (.exists log)
+                                (if (> (.length log) max-size)
+                                    (do
+                                        ;(println "length:" (.length log) "max:" max-size)
+                                    (rotate-file log path prefix num-files)))
+                                (.createNewFile log))
+                            (spit filename (with-out-str (println output-str)) :append true)
+                            (catch java.io.IOException _)))))})

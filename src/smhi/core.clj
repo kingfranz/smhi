@@ -744,7 +744,7 @@
 (defn -main
     [& args]
     (timbre/merge-config!
-        {:appenders {:spit (appenders/spit-appender {:fname "./clock.log"
+        {:appenders {:spit (max-size-appender {:path "./" :prefix "clock" :max-size 1000000 :num-files 10
                                                   :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
     (set-background)
     (-> smhi-frame (set-screen args) show!)
