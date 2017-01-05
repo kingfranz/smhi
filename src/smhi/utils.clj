@@ -25,6 +25,11 @@
 
 (def landscape-pic (atom nil))
 
+(defn set-var 
+	"set value of atom"
+	[the-atom value]
+	(swap! the-atom (fn [x] value)))
+
 (defn read-image
     [fname]
     (javax.imageio.ImageIO/read (java.io.File. (str (if (not (clojure.string/includes? fname "/")) image-dir) fname))))

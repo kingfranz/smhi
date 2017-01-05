@@ -67,11 +67,11 @@
 
 ; filter SMHI data based on one specific unit
 (defn filter-param
-  [param units]
-  (let [param-key (keyword (:name param))]
-    (if (:keep (param-key units))
-      {param-key (first (:values param))}
-      {})))
+	[param units]
+	(let [param-key (keyword (:name param))]
+		(if (:keep (param-key units))
+			{param-key (first (:values param))}
+			{})))
 
 ; filter SMHI data based on the units map
 (defn filter-param-map
@@ -129,61 +129,61 @@
 
 ; draw a (possibly scaled) image within a widget
 (defn draw-image
-  [widget ^java.awt.Graphics2D g2d image match valign halign iname]
-  {:pre [(some #{match}  '(:both :width :height :min :max))
-         (some #{valign} '(:top :center :bottom))
-         (some #{halign} '(:left :center :right))]}
-  (let [width           (.getWidth widget)
-        height          (.getHeight widget)
-        image-width     (.getWidth image)
-        image-height    (.getHeight image)
-        width-scale-1   (/ width image-width)
-          height-scale-1  (/ height image-height)
-          width-scale-2   (cond
-                           (= match :both)   width-scale-1
-                           (= match :width)  width-scale-1
-                           (= match :height) 1.0
-                           (= match :min)    (min width-scale-1 height-scale-1)
-                           (= match :max)    (max width-scale-1 height-scale-1))
-          height-scale-2  (cond
-                           (= match :both)   height-scale-1
-                           (= match :width)  1.0
-                           (= match :height) height-scale-1
-                           (= match :min)    (min width-scale-1 height-scale-1)
-                           (= match :max)    (max width-scale-1 height-scale-1))
-          new-width       (* image-width width-scale-2)
-          new-height      (* image-height height-scale-2)
-          width-offset    (cond
-                           (= halign :left)   0
-                           (= halign :center) (/ (- width new-width) 2)
-                           (= halign :right)  (- width new-width))
-          height-offset   (cond
-                           (= valign :top)    0
-                           (= valign :center) (/ (- height new-height) 2)
-                           (= valign :bottom) (- height new-height))]
-       (push g2d
-         (draw (scale g2d width-scale-2 height-scale-2)
-             (image-shape (/ width-offset width-scale-2) (/ height-offset height-scale-2) image)
-             nil))))
+	[widget ^java.awt.Graphics2D g2d image match valign halign iname]
+	{:pre [(some #{match}  '(:both :width :height :min :max))
+	(some #{valign} '(:top :center :bottom))
+	(some #{halign} '(:left :center :right))]}
+	(let [width           (.getWidth widget)
+		height          (.getHeight widget)
+		image-width     (.getWidth image)
+		image-height    (.getHeight image)
+		width-scale-1   (/ width image-width)
+		height-scale-1  (/ height image-height)
+		width-scale-2   (cond
+			(= match :both)   width-scale-1
+			(= match :width)  width-scale-1
+			(= match :height) 1.0
+			(= match :min)    (min width-scale-1 height-scale-1)
+			(= match :max)    (max width-scale-1 height-scale-1))
+		height-scale-2  (cond
+			(= match :both)   height-scale-1
+			(= match :width)  1.0
+			(= match :height) height-scale-1
+			(= match :min)    (min width-scale-1 height-scale-1)
+			(= match :max)    (max width-scale-1 height-scale-1))
+		new-width       (* image-width width-scale-2)
+		new-height      (* image-height height-scale-2)
+		width-offset    (cond
+			(= halign :left)   0
+			(= halign :center) (/ (- width new-width) 2)
+			(= halign :right)  (- width new-width))
+		height-offset   (cond
+			(= valign :top)    0
+			(= valign :center) (/ (- height new-height) 2)
+			(= valign :bottom) (- height new-height))]
+		(push g2d
+			(draw (scale g2d width-scale-2 height-scale-2)
+				(image-shape (/ width-offset width-scale-2) (/ height-offset height-scale-2) image)
+				nil))))
 
 ; calculate all the values needed for drawing the temerature graph
 (defn get-temp-scaling
-  [data top bottom]
-  (let [min-temp       (apply min (map second data))
-        max-temp       (apply max (map second data))
-        height         (inc (- bottom top))
-        real-temp-span (- max-temp min-temp)
-        half-diff      (/ (- tot-temp-span real-temp-span) 2)
-        start          (int (math/floor (- min-temp half-diff)))
-        temp-info      {:min         min-temp                    ; lowest value
-                        :max         max-temp                    ; highest value
-                        :axis-scale  (/ tot-temp-span axis-span) ; integer size of steps
-                        :axis-start  start                       ; what integer does the axis start on
-                        :multiplier  1                           ; multiplier for data
-                        :y-scale     (/ height tot-temp-span)        ; scale factor for window
-                        :temp-span   real-temp-span              ; lowest to highest value
-                        :min-padding (- min-temp start)}]        ; how much to pad values with
-    temp-info))
+	[data top bottom]
+	(let [min-temp       (apply min (map second data))
+		  max-temp       (apply max (map second data))
+		  height         (inc (- bottom top))
+		  real-temp-span (- max-temp min-temp)
+		  half-diff      (/ (- tot-temp-span real-temp-span) 2)
+		  start          (int (math/floor (- min-temp half-diff)))
+          temp-info      {:min         min-temp                    ; lowest value
+                          :max         max-temp                    ; highest value
+                          :axis-scale  (/ tot-temp-span axis-span) ; integer size of steps
+                          :axis-start  start                       ; what integer does the axis start on
+                          :multiplier  1                           ; multiplier for data
+                          :y-scale     (/ height tot-temp-span)        ; scale factor for window
+                          :temp-span   real-temp-span              ; lowest to highest value
+                          :min-padding (- min-temp start)}]        ; how much to pad values with
+        temp-info))
 
 ; extract all the data for a specific parameter
 (defn get-param
@@ -674,64 +674,78 @@
 
 ; process the SMHI data and convert timestamp to delta minutes
 (defn process-data
-  []
-  (let [now           (t/now)
-        day-start     (t/today-at 00 00)
-        response      (send-weather-request smhi-config)
-        resp          (:timeSeries response)
-        filtered-resp (map #(vector (mk-delta-time % now day-start)
-                             (filter-param-map (:parameters %) units))
-                        resp)
-        valid-resp    (filter #(>= (first %) 0) filtered-resp) ; remove old ones
-        week-resp     (filter #(< (first %) week-minutes) valid-resp)] ; only this week
-      (if (> (count valid-resp) (count week-resp))
-        (let [next-entry (nth valid-resp (count week-resp))
-              prev-entry (last week-resp)
-              new-entry  (mk-intermediate prev-entry next-entry (dec week-minutes))]
-          (conj (vec week-resp) new-entry))
-        week-resp)))
+	[]
+	(let [now           (t/now)
+		  day-start     (t/today-at 00 00)
+		  response      (send-weather-request smhi-config)
+		  resp          (:timeSeries response)
+		  filtered-resp (map #(vector (mk-delta-time % now day-start)
+									  (filter-param-map (:parameters %) units))
+							 resp)
+          valid-resp    (filter #(>= (first %) 0) filtered-resp) ; remove old ones
+          week-resp     (filter #(< (first %) week-minutes) valid-resp)] ; only this week
+        (if (> (count valid-resp) (count week-resp))
+        	(let [next-entry (nth valid-resp (count week-resp))
+        		  prev-entry (last week-resp)
+        		  new-entry  (mk-intermediate prev-entry next-entry (dec week-minutes))]
+        		(conj (vec week-resp) new-entry))
+        	week-resp)))
+
+(def weather-timer-ts (atom nil))
+
+(defn time-for-forecast? 
+	"doc-string"
+	[]
+	(let [now (l/local-now)]
+		(or (nil? @weather-timer-ts) (> (t/in-minutes (t/interval @weather-timer-ts now)) 30))))
 
 (defn weather-timer-fn
-  [x]
-  (try
-    (info "getting new forecast")
-    (let [weather (process-data)]
-      (info "weather-timer-fn: successfully got new forecast")
-      (swap! weather-data (fn [x] weather))
-      (swap! weather-exception (fn [x] nil))
-      (if (not (nil? @weather-data))
-        (repaint! [(select smhi-frame [:#info])
-                   (select smhi-frame [:#wind-dir])
-                   (select smhi-frame [:#lbl-symbol])
-                   (select smhi-frame [:#forecast])])))
-    (catch Exception e
-        (do
-            (swap! weather-exception (fn [x] e))
-            (error "---------------------------------------------------")
-            (error "Error in: weather-timer-fn")
-            (error (str "Exception: " (.getMessage e)))
-            (error "---------------------------------------------------")
-            (error (Exception. e))))))
+    [x]
+    (try
+    	(if (time-for-forecast?)
+    		(do
+		        (info "getting new forecast")
+		        (let [weather (process-data)]
+		            (info "weather-timer-fn: successfully got new forecast")
+		            (set-var weather-data weather)
+		            (set-var weather-exception nil)
+		            (set-var weather-timer-ts (l/local-now))
+		            (if (not (nil? @weather-data))
+		                (repaint! [(select smhi-frame [:#info])
+		                           (select smhi-frame [:#wind-dir])
+		                           (select smhi-frame [:#lbl-symbol])
+		                           (select smhi-frame [:#forecast])])))))
+        (catch Exception e
+            (do
+                (set-var weather-exception e)
+                (set-var weather-timer-ts nil)
+                (error "---------------------------------------------------")
+                (error "Error in: weather-timer-fn")
+                (error (str "Exception: " (.getMessage e)))
+                (error "---------------------------------------------------")
+                (spit "clock-error.log" (str "weather-timer-fn Exception: " (.getMessage e)) :append true)
+                (error (Exception. e))))))
 
 (defn radar-timer-fn
-  [x]
-  (try
-    (info "getting new radar image")
-    (let [pic (get-radar-image (:radar-url smhi-config))]
-      (info "radar-timer-fn: successfully got new image")
-      (swap! radar-data (fn [x] pic))
-      (swap! radar-exception (fn [x] nil))
-      (repaint! (select smhi-frame [:#radar]))
-      (set-background)
-      (repaint! (select smhi-frame [:#lbl-back])))
-    (catch Exception e
-        (do
-            (swap! radar-exception (fn [x] e))
-            (error "---------------------------------------------------")
-            (error "Error in: radar-timer-fn")
-            (error (str "Exception: " (.getMessage e)))
-            (error "---------------------------------------------------")
-            (error (Exception. e))))))
+    [x]
+    (try
+        (info "getting new radar image")
+        (let [pic (get-radar-image (:radar-url smhi-config))]
+            (info "radar-timer-fn: successfully got new image")
+            (set-var radar-data pic)
+            (set-var radar-exception nil)
+            (repaint! (select smhi-frame [:#radar]))
+            (set-background)
+            (repaint! (select smhi-frame [:#lbl-back])))
+        (catch Exception e
+            (do
+                (set-var radar-exception e)
+                (error "---------------------------------------------------")
+                (error "Error in: radar-timer-fn")
+                (error (str "Exception: " (.getMessage e)))
+                (error "---------------------------------------------------")
+                (spit "clock-error.log" (str "radar-timer-fn Exception: " (.getMessage e)) :append true)
+                (error (Exception. e))))))
 
 (defn set-screen
     [the-frame args]
@@ -751,6 +765,6 @@
     (st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
     (st/timer weather-timer-fn
         :initial-delay (* 1000 2)
-        :delay (* 1000 60 30))
+        :delay (* 1000 60 1))
     (st/timer radar-timer-fn
         :delay (* 1000 60 5)))

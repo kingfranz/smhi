@@ -62,7 +62,7 @@
 (def tick-width       10)
 (def temp-text-x      (- left-axis-width tick-width 3))
 (def wind-text-x      (- (/ left-axis-width 2) tick-width 3))
-(def tot-temp-span    20)
+(def tot-temp-span    30)
 (def axis-span        10)
 (def rain-axis-span   max-rain-level)
 (def wind-axis-factor 3)
