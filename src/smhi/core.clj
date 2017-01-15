@@ -59,7 +59,10 @@
 ; not nil if we got an exception
 (def weather-exception (atom nil))
 
-; the current radar image
+; queue of radar images
+(def radar-queue (atom nil))
+
+; the current radar queue
 (def radar-data (atom nil))
 
 ; not nil if we got an exception
@@ -213,36 +216,60 @@
                           txt)
             exception-style)))
 
+(defn mk-radar-image
+	[radar-pic map-pic sub-ul-x sub-ul-y sub-width sub-height]
+	(let [map-width    (.getWidth map-pic)
+          map-height   (.getHeight map-pic)
+          border-size  10
+          sub-radar    (.getSubimage radar-pic
+                                     sub-ul-x
+                                     sub-ul-y
+                                     sub-width
+                                     sub-height)
+          width-ratio  (/ (- map-width  (* border-size 2)) sub-width)
+          height-ratio (/ (- map-height (* border-size 2)) sub-height)
+          buffer       (buffered-image map-width map-height)
+          buffer-g2d   (.createGraphics buffer)]
+        (-> buffer-g2d (draw (image-shape 0 0 map-pic) nil)
+                       (scale width-ratio height-ratio)
+                       (draw (image-shape 1 1 sub-radar) nil))
+        buffer))
+
+(defn have-radar-data
+	[]
+	(if (and (not-nil? @radar-data) (not-empty @radar-data))
+		true
+		(do
+			(set-var radar-data @radar-queue)
+			(and (not-nil? @radar-data) (not-empty @radar-data)))))
+
+(defn get-current-radar-image
+	[]
+	(if (have-radar-data)
+		(let [image (peek @radar-data)]
+			(set-var radar-data (pop @radar-data))
+			image)
+		nil))
+
+(defn add-radar-2-queue
+	[image]
+	(if (nil? @radar-queue)
+		(set-var radar-queue (clojure.lang.PersistentQueue/EMPTY)))
+	(if (> (count @radar-queue) max-radar-queue-size)
+		(set-var radar-queue (pop @radar-queue)))
+	(set-var radar-queue (conj @radar-queue image)))
+
 ; draw the radar picture
 (defn draw-radar
   [widget ^java.awt.Graphics2D g2d]
   (try
     (lbl-info widget g2d)
-    (if (not (nil? @radar-data))
-        (let [width        (.getWidth widget)
-              height       (.getHeight widget)
-              map-width    (.getWidth map-pic)
-              map-height   (.getHeight map-pic)
-              mid-x        (/ (- width map-width) 2)
-              mid-y        (/ (- height map-height) 2)
-              border-size  10
-              sub-radar    (.getSubimage @radar-data
-                                         radar-sub-upper-left-x
-                                         radar-sub-upper-left-y
-                                         radar-sub-width
-                                         radar-sub-height)
-              width-ratio  (/ (- map-width (* border-size 2)) radar-sub-width)
-              height-ratio (/ (- map-height (* border-size 2)) radar-sub-height)
-              buffer       (buffered-image map-width map-height)
-              buffer-g2d   (.createGraphics buffer)
-              aaa          (-> buffer-g2d (draw (image-shape 0 0 map-pic) nil)
-                              (scale width-ratio height-ratio)
-                              (draw (image-shape 1 1 sub-radar) nil))]
-             (draw-image widget g2d buffer :min :center :center "radar")))
+    (when-let [image (get-current-radar-image)]
+        (draw g2d (image-shape 0 0 image) nil))
     (if (not (nil? @radar-exception))
         (draw-exception-txt widget g2d @radar-exception))
     (catch Exception e
-     (error (Exception. e)))))
+    	(error (Exception. e)))))
 
 ; draw the clock
 (defn draw-clock
@@ -407,7 +434,6 @@
              rain-axis-text-style
              true))))
 
-
 (defn mk-symbol-targets
   []
   (flatten (for [d    (range 0 graph-days)
@@ -562,7 +588,6 @@
                 value)
         value-style)))
 
-
 ; draw all the parts of the now info
 (defn draw-info
   [widget ^java.awt.Graphics2D g2d]
@@ -630,7 +655,6 @@
                              :bounds    [0 0 horiz-res vert-rez]
                              :paint     draw-background)])))
 
-
 ; convert the SMHI timestamp to minutes from midnight (or -1 if it's too old)
 (defn mk-delta-time
   [m now day-start]
@@ -670,7 +694,6 @@
                                 (get next-map (first map-keys))
                                 ts
                                 (get (get units (first map-keys)) :is-int))))))))
-
 
 ; process the SMHI data and convert timestamp to delta minutes
 (defn process-data
@@ -730,11 +753,16 @@
     [x]
     (try
         (info "getting new radar image")
-        (let [pic (get-radar-image (:radar-url smhi-config))]
+        (let [radar-pic (get-radar-image (:radar-url smhi-config))
+        	  combo-pic (mk-radar-image radar-pic
+        	  							map-pic
+        	  							radar-sub-upper-left-x
+        	  							radar-sub-upper-left-y
+        	  							radar-sub-width
+        	  							radar-sub-height)]
             (info "radar-timer-fn: successfully got new image")
-            (set-var radar-data pic)
+            (add-radar-2-queue combo-pic)
             (set-var radar-exception nil)
-            (repaint! (select smhi-frame [:#radar]))
             (set-background)
             (repaint! (select smhi-frame [:#lbl-back])))
         (catch Exception e
@@ -763,14 +791,20 @@
     (set-background)
     (-> smhi-frame (set-screen args) show!)
 
-    ; set timer for clock
+    ; set timer for clock 1s
     (st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
 
-    ; set timer for weather forecast
+    ; set timer for weather forecast 30 minutes
     (st/timer weather-timer-fn
         :initial-delay (* 1000 2)
-        :delay (* 1000 60 1))
+        :delay (* 1000 60 30))
 
-    ; set timer for radar image
+    ; set timer for radar image paint 1s
+    (st/timer  (fn [x] (repaint! (select smhi-frame [:#radar])))
+        :initial-delay (* 1000 5)
+        :delay 1000)
+
+    ; set timer for radar image download 5 minutes
     (st/timer radar-timer-fn
-        :delay (* 1000 60 5)))
+        :delay (* 1000 60 5))
+)

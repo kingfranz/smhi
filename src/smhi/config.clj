@@ -72,6 +72,7 @@
 (def radar-sub-height       45)
 (def radar-sub-upper-left-x 110)
 (def radar-sub-upper-left-y 595)
+(def max-radar-queue-size   10)
 
 (def axis-width     2)
 (def wind-style     (style :foreground :white :background :lightgray))
