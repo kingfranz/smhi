@@ -69,21 +69,6 @@
           bg-image (read-image bg-name)]
         (swap! landscape-pic (fn [x] bg-image))))
 
-; map wind direction angle to text
-(defn wind-dir-to-str
-    [dir]
-    (let [between (fn [x [l h]] (and (>= x l) (< x h)))
-          wd [[[  0.0  22.5] "N"]
-              [[ 22.5  67.5] "NE"]
-              [[ 67.5 112.5] "E"]
-              [[112.5 157.5] "SE"]
-              [[157.5 202.5] "S"]
-              [[202.5 247.5] "SW"]
-              [[247.5 292.5] "W"]
-              [[292.5 337.5] "NW"]
-              [[337.5 360.0] "N"]]]
-        (->> wd (filter #(between dir (first %))) first second)))
-
 (defn byte-array-2-image
     [barray]
     (javax.imageio.ImageIO/read (ByteArrayInputStream. barray)))
@@ -153,6 +138,23 @@
     [h]
     {:pre [(and (>= h 0) (< h 24))]}
     (* (/ (mod h 12) 12) 360))
+
+; map wind direction angle to text
+(defn wind-dir-to-str
+    [dir]
+    {:pre  [(and (>= dir 0) (<= dir 360))]
+     :post [(is-string? %)]}
+    (let [between (fn [x [l h]] (and (>= x l) (< x h)))
+          wd [[[  0.0  22.5] "N"]
+              [[ 22.5  67.5] "NE"]
+              [[ 67.5 112.5] "E"]
+              [[112.5 157.5] "SE"]
+              [[157.5 202.5] "S"]
+              [[202.5 247.5] "SW"]
+              [[247.5 292.5] "W"]
+              [[292.5 337.5] "NW"]
+              [[337.5 360.1] "N"]]]
+        (->> wd (filter #(between dir (first %))) first second)))
 
 (defn avg
     [coll]

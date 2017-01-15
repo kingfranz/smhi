@@ -249,7 +249,7 @@
   [widget ^java.awt.Graphics2D g2d]
   (try
     (lbl-info widget g2d)
-    (info "tick")
+    ;(info "tick")
     (let [now          (l/local-now)
             minute       (+ (t/minute now) (/ (t/second now) 60))
             hour         (+ (t/hour now) (/ minute 60))
@@ -723,7 +723,7 @@
                 (error "Error in: weather-timer-fn")
                 (error (str "Exception: " (.getMessage e)))
                 (error "---------------------------------------------------")
-                (spit "clock-error.log" (str "weather-timer-fn Exception: " (.getMessage e)) :append true)
+                (spit "clock-error.log" (str (now-str) " weather-timer-fn Exception: " (.getMessage e) "\n") :append true)
                 (error (Exception. e))))))
 
 (defn radar-timer-fn
@@ -744,7 +744,7 @@
                 (error "Error in: radar-timer-fn")
                 (error (str "Exception: " (.getMessage e)))
                 (error "---------------------------------------------------")
-                (spit "clock-error.log" (str "radar-timer-fn Exception: " (.getMessage e)) :append true)
+                (spit "clock-error.log" (str (now-str) " radar-timer-fn Exception: " (.getMessage e) "\n") :append true)
                 (error (Exception. e))))))
 
 (defn set-screen
