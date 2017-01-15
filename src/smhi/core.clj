@@ -762,9 +762,15 @@
                                                   :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
     (set-background)
     (-> smhi-frame (set-screen args) show!)
+
+    ; set timer for clock
     (st/timer (fn [x] (repaint! (select smhi-frame [:#clock]))))
+
+    ; set timer for weather forecast
     (st/timer weather-timer-fn
         :initial-delay (* 1000 2)
         :delay (* 1000 60 1))
+
+    ; set timer for radar image
     (st/timer radar-timer-fn
         :delay (* 1000 60 5)))
