@@ -69,6 +69,8 @@
 (def rain-axis-span   max-rain-level)
 (def wind-axis-factor 3)
 (def smhi-timeout     5000)
+(def twilight-begin   :astronomical_twilight_begin)
+(def twilight-end     :astronomical_twilight_end)
 
 (def radar-sub-width        112)
 (def radar-sub-height       45)

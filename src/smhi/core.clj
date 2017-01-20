@@ -30,6 +30,7 @@
     (:require [smhi.graph-utils        :refer :all])
     (:require [smhi.spec        :refer :all])
     (:require [smhi.config        :refer :all])
+    (:require [smhi.sun        :refer :all])
     (:require [clojure.data.json          :as json])
     (:require [clojure.java.io            :as io])
     (:require [clojure.spec               :as s])
@@ -425,6 +426,75 @@
              rain-axis-text-style
              true))))
 
+; draw axises for forecast graphics (and scales)
+(defn draw-sunrise
+	[^java.awt.Graphics2D g2d left-x left-y width height]
+	(try
+		(when-let [info (get-sun-info)]
+			(info "drawing sunrise and sunset")
+			(let [sec-2-x              (fn [s] (* (/ width (* graph-days 24 60 60)) s))
+		          dt-to-sec            (fn [x] (+ (* (t/hour x) 60 60) (* (t/minute x) 60) (t/second x)))
+		          twilight-start-sec   (dt-to-sec (->> info :results twilight-begin f/parse))
+		          sunrise-sec          (dt-to-sec (->> info :results :sunrise f/parse))
+		          sunset-sec           (dt-to-sec (->> info :results :sunset f/parse))
+		          twilight-end-sec     (dt-to-sec (->> info :results twilight-end f/parse))
+		          day-start            (fn [d] (+ left-x (sec-2-x (* d (* 24 60 60)))))
+		          twilight-start-x     (sec-2-x twilight-start-sec)
+		          sunrise-x            (sec-2-x sunrise-sec)
+		          sunset-x             (sec-2-x sunset-sec)
+		          twilight-end-x       (sec-2-x twilight-end-sec)
+		          night-start-width    twilight-start-x
+		          twilight-start-width (- sunrise-x twilight-start-x)
+		          twilight-end-width   (- twilight-end-x sunset-x)
+		          night-end-width      (sec-2-x (- (* 24 60 60) twilight-end-sec))
+		          twilight-start       (fn [d] (+ (day-start d) twilight-start-x))
+		          sunset-start         (fn [d] (+ (day-start d) sunset-x))
+		          night-start          (fn [d] (+ (day-start d) twilight-end-x))
+		          mk-gradient          (fn [xs w l] (style :background
+			    									(linear-gradient :start [xs 0]
+			    								 					 :end [(+ xs w) 0]
+			    								 					 :colors [(color 30 30 30 (if l 255 0))
+			    								 					 		  (color 30 30 30 (if l 0 255))])))
+
+		          draw-morning-night (fn [d] (draw g2d (rect (day-start d)
+		          											 left-y
+		          											 night-start-width
+		          											 height)
+			    									(style :background (color 30 30 30))))
+		          draw-morning-twilight (fn [d] (draw g2d
+		          									  (rect (twilight-start d)
+		          											left-y
+		          											twilight-start-width
+		          											height)
+			    									  (mk-gradient (twilight-start d) twilight-start-width true)))
+		          draw-evening-twilight (fn [d] (draw g2d
+		          									  (rect (sunset-start d)
+		          											left-y
+		          											twilight-end-width
+		          											height)
+			    									  (mk-gradient (sunset-start d) twilight-end-width false)))
+		          draw-evening-night (fn [d] (draw g2d (rect (night-start d)
+		          											 left-y
+		          											 night-end-width
+		          											 height)
+			    									   (style :background (color 30 30 30))))]
+		        ;(println "sunset-sec:" sunset-sec "x:" (int (sec-2-x sunset-sec)))
+		        (doseq [d (range graph-days)]
+;			        (println (int (day-start d))
+;			        		 (int night-start-width)
+;			        		 (int (twilight-start d))
+;			        		 (int twilight-start-width)
+;			        		 (int (sunset-start d))
+;			        		 (int twilight-end-width)
+;			        		 (int (night-start d))
+;			        		 (int night-end-width))
+		        	(draw-morning-night d)
+		        	(draw-morning-twilight d)
+		        	(draw-evening-twilight d)
+		        	(draw-evening-night d))))
+		(catch Exception e
+    		(error (Exception. "draw-sunrise")))))
+    
 (defn mk-symbol-targets
   []
   (flatten (for [d    (range 0 graph-days)
@@ -500,6 +570,7 @@
               temp-data    (map #(vector (first %) (->> % second (* 1.0))) (get-param x-data :t))
               temp-info    (get-temp-scaling temp-data top bottom)]
           (fill g2d (color 128 128 128 128) width height)
+          (draw-sunrise g2d left-axis-width top width-avail (inc (- bottom top)))
           (draw-axis g2d x-data width top bottom temp-info)
           (draw-rain g2d x-data top (- bottom 3))
           (draw-wind g2d x-data top bottom)
