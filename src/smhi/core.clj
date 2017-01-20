@@ -294,7 +294,8 @@
                     [[(-> points last first) bottom]])]
     (draw g2d
           (apply polygon all-points)
-          rain-style)))
+          rain-style)
+    (draw-line-seq g2d points (style :foreground :white))))
 
 ; draw graphic forecast of temperature
 (defn draw-temp
