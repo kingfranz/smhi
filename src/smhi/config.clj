@@ -1,19 +1,19 @@
 (ns smhi.config
-    (:use seesaw.core)
-    (:use seesaw.border)
-    (:use seesaw.graphics)
-    (:use seesaw.color)
-    (:use seesaw.font)
+	(:use seesaw.core)
+	(:use seesaw.border)
+	(:use seesaw.graphics)
+	(:use seesaw.color)
+	(:use seesaw.font)
  )
 
 
 (def smhi-config
-    {:latitude    "58.786869"
-     :longitude   "14.265020"
-     :weather-url "http://opendata-download-metfcst.smhi.se"
-     :radar-url   "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
-     :category    "pmp2g"
-     :version     "2"})
+	{:latitude    "58.786869"
+	 :longitude   "14.265020"
+	 :weather-url "http://opendata-download-metfcst.smhi.se"
+	 :radar-url   "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
+	 :category    "pmp2g"
+	 :version     "2"})
 
 (def units
   {:msl      {:str "Air Pressure"            :is-int false :keep true  :unit "hPa"}
@@ -51,6 +51,8 @@
 (def info-width      radar-width)
 (def wnow-height     (/ (- clock-height radar-height) 2))
 (def wnow-width      (/ radar-width 5))
+(def sun-up-point    {:x (+ radar-width (/ clock-width 2)) :y (- (/ clock-height 2) 120)})
+(def sun-down-point  {:x (+ radar-width (/ clock-width 2)) :y (+ (/ clock-height 2) 170)})
 
 (def left-axis-width  100)
 (def right-axis-width 50)
@@ -72,7 +74,12 @@
 (def radar-sub-height       45)
 (def radar-sub-upper-left-x 110)
 (def radar-sub-upper-left-y 595)
-(def max-radar-queue-size   10)
+(def radar-interval-minutes 5)
+(def radar-interval-ms      (* radar-interval-minutes 60 1000))
+(def radar-fps              10)
+(def radar-ani-hours        5)
+(def max-radar-queue-size   (* (/ 60 radar-interval-minutes) radar-ani-hours))
+(def radar-ani-delay-sec    2)
 
 (def axis-width     2)
 (def wind-style     (style :foreground :white :background :lightgray))
@@ -95,7 +102,9 @@
 (def info-title-style     (style :foreground :white :font lbl-info-txt-font))
 (def info-value-style     (style :foreground :white :font lbl-txt-font))
 (def info-bg-style        (style :foreground (color 32 32 32)
-                           :stroke 2
-                           :background (color 128 128 128 128)))
+						   :stroke 2
+						   :background (color 128 128 128 128)))
 (def date-txt-style       (style :foreground :white :font lbl-info-txt-font))
 (def exception-style      (style :foreground :red :font "ARIAL-64"))
+(def sun-style            (style :foreground :black :font "ARIAL-BOLD-48"))
+(def sun-bg-style         (style :foreground :black :stroke 2 :background (color 180 180 180)))

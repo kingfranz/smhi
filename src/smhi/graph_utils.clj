@@ -1,4 +1,6 @@
 (ns smhi.graph-utils
+  (:require [smhi.utils            :refer :all])
+  (:require [smhi.sun            :refer :all])
   (:require [clojure.java.io            :as io])
   (:require [clj-time.core              :as t])
   (:require [clj-time.format            :as f])
@@ -18,6 +20,7 @@
            (java.io ByteArrayInputStream)))
 
 
+(def landscape-pic (atom nil))
 
 ; fill a graphics context with color
 (defn fill
@@ -52,3 +55,12 @@
           (translate (neg (/ width 2)) (neg (/ height 2)))
           (draw (image-shape 0 0 image) nil))
          buffer))
+
+; load an image and set it as background
+(defn set-background
+    []
+    (let [bg-name  (get-background-name)
+          bg-image (read-image bg-name)
+          info-img (inprint-image bg-image)]
+        (set-var landscape-pic info-img)))
+

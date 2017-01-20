@@ -49,8 +49,10 @@
                        logf tracef debugf infof warnf errorf fatalf reportf spy get-env]])
     (:require [taoensso.timbre.appenders.core :as appenders])
     (:import (javax.swing JFrame JLabel)
-           (java.awt Color Font FontMetrics GraphicsEnvironment)
-           (java.io ByteArrayInputStream))
+             (java.awt Color Font FontMetrics GraphicsEnvironment)
+             (java.io ByteArrayInputStream)
+    		 (javax.imageio ImageIO)
+    		 (java.io File))
     (:gen-class))
 
 ; the current weather forecast
@@ -81,16 +83,6 @@
   [params units]
   (apply merge (map #(filter-param % units) params)))
 
-(defn send-request
-    [url resp-type]
-    (let [ret-type (if (= resp-type :json) :text :byte-array)
-          {:keys [status headers body error] :as resp} @(http/get url {:timeout smhi-timeout :as ret-type})]
-      (if error
-          (if (instance? org.httpkit.client.TimeoutException error)
-            (throw (Exception. "Timeout"))
-            (throw (Exception. "unknown network errror")))
-          body)))
-
 (defn mk-weather-url
     [config]
     (str (get config :weather-url)
@@ -103,18 +95,15 @@
 ; send a weather forecast request to SMHI
 (defn send-weather-request
     [config]
-    (let [url    (mk-weather-url config)
-          data   (send-request url :json)
-          joined (clojure.string/join data)
-          json   (json/read-str joined :key-fn keyword)]
-         (if (= (s/conform smhi-spec json) :clojure.spec/invalid)
+    (let [forecast (send-json-request (mk-weather-url config))]
+        (if (= (s/conform smhi-spec forecast) :clojure.spec/invalid)
             (do
                 (error "------- Invalid SMHI data -----------")
-                (error (s/explain-str smhi-spec json))
+                (error (s/explain-str smhi-spec forecast))
                 (error "-------------------------------------")
-                (error json)
+                (error forecast)
                 (throw (Exception. "Invalid SMHI data"))))
-         json))
+        forecast))
 
 ; get latest radar image from SMHI
 (defn get-radar-image
@@ -128,6 +117,7 @@
           g2d     (.createGraphics simg)]
      (.drawImage g2d img 0 0 width height nil)
      (.dispose g2d)
+     ;(ImageIO/write simg "png"  (File. (str "radar-" (now-str) ".png")))
      simg))
 
 ; draw a (possibly scaled) image within a widget
@@ -198,7 +188,7 @@
     [widget ^java.awt.Graphics2D g2d]
     (try
         (lbl-info widget g2d)
-        (if (not (nil? @landscape-pic))
+        (if-not (nil? @landscape-pic)
             (draw-image widget g2d @landscape-pic :both :center :center "background"))
         (catch Exception e
             (error (Exception. e)))))
@@ -240,7 +230,8 @@
 	(if (and (not-nil? @radar-data) (not-empty @radar-data))
 		true
 		(do
-			(set-var radar-data @radar-queue)
+			(when-let [queue @radar-queue]
+				(set-var radar-data (apply conj queue (repeat (* radar-fps radar-ani-delay-sec) (last queue)))))
 			(and (not-nil? @radar-data) (not-empty @radar-data)))))
 
 (defn get-current-radar-image
@@ -265,7 +256,7 @@
   (try
     (lbl-info widget g2d)
     (when-let [image (get-current-radar-image)]
-        (draw g2d (image-shape 0 0 image) nil))
+    	(draw g2d (image-shape 0 0 image) nil))
     (if (not (nil? @radar-exception))
         (draw-exception-txt widget g2d @radar-exception))
     (catch Exception e
@@ -799,12 +790,12 @@
         :initial-delay (* 1000 2)
         :delay (* 1000 60 30))
 
-    ; set timer for radar image paint 1s
+    ; set timer for radar image paint 100ms
     (st/timer  (fn [x] (repaint! (select smhi-frame [:#radar])))
         :initial-delay (* 1000 5)
-        :delay 1000)
+        :delay (/ 1000 radar-fps))
 
     ; set timer for radar image download 5 minutes
     (st/timer radar-timer-fn
-        :delay (* 1000 60 5))
+        :delay radar-interval-ms)
 )

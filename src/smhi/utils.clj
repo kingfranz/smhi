@@ -23,16 +23,30 @@
              (java.awt Color Font FontMetrics GraphicsEnvironment)
              (java.io ByteArrayInputStream)))
 
-(def landscape-pic (atom nil))
-
 (defn set-var 
 	"set value of atom"
 	[the-atom value]
 	(swap! the-atom (fn [x] value)))
 
+(defn send-request
+    [url resp-type]
+    (let [ret-type (if (= resp-type :json) :text :byte-array)
+          {:keys [status headers body error] :as resp} @(http/get url {:timeout smhi-timeout :as ret-type})]
+      (if error
+          (if (instance? org.httpkit.client.TimeoutException error)
+            (throw (Exception. "Timeout"))
+            (throw (Exception. "unknown network errror")))
+          body)))
+
+(defn send-json-request
+	[url]
+    (-> url (send-request :json)
+        	(clojure.string/join)
+        	(json/read-str :key-fn keyword)))
+
 (defn read-image
     [fname]
-    (javax.imageio.ImageIO/read (java.io.File. (str (if (not (clojure.string/includes? fname "/")) image-dir) fname))))
+    (javax.imageio.ImageIO/read (java.io.File. (str (if-not (clojure.string/includes? fname "/") image-dir) fname))))
 
 ; return current dat & time as a string
 (defn now-str
@@ -61,13 +75,6 @@
     (let [backgrounds (get-background-list)
           num-bg      (count backgrounds)]
         (nth backgrounds (rand-int num-bg))))
-
-; load an image and set it as background
-(defn set-background
-    []
-    (let [bg-name  (get-background-name)
-          bg-image (read-image bg-name)]
-        (swap! landscape-pic (fn [x] bg-image))))
 
 (defn byte-array-2-image
     [barray]
@@ -108,6 +115,10 @@
 (defn is-pos-int-str?
     [s]
     (and (is-string? s) (re-matches #"\d+" (str/trim s))))
+
+(defn is-pos-int?
+    [s]
+    (and (int? s) (pos? s)))
 
 ; the window size map
 (def lbl-map (atom nil))

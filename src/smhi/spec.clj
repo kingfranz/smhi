@@ -1,4 +1,5 @@
 (ns smhi.spec
+    (:require [smhi.utils        :refer :all])
     (:require [clojure.spec               :as s])
     (:require [clj-time.core              :as t])
     (:require [clj-time.format            :as f])
@@ -87,3 +88,47 @@
                      :Wsymbp    :Wsymb/params))
 (s/def ::timeSeries (s/+ (s/keys :req-un [::validTime ::parameters])))
 (def smhi-spec (s/keys :req-un [::approvedTime ::referenceTime ::geometry ::timeSeries]))
+
+;;---------------------------------------------------------------------------------
+
+(def sunrise-example
+	{
+		:results
+		{
+			:astronomical_twilight_begin "2015-05-21T03:20:49+00:00"
+			:sunset "2015-05-21T19:22:59+00:00"
+			:solar_noon "2015-05-21T12:14:17+00:00"
+			:day_length 51444
+			:sunrise "2015-05-21T05:05:35+00:00"
+			:civil_twilight_end "2015-05-21T19:52:17+00:00"
+			:nautical_twilight_begin "2015-05-21T04:00:13+00:00"
+			:nautical_twilight_end "2015-05-21T20:28:21+00:00"
+			:astronomical_twilight_end "2015-05-21T21:07:45+00:00"
+			:civil_twilight_begin "2015-05-21T04:36:17+00:00"
+		}
+		:status "OK"
+	})
+
+(s/def :sun/status                      #(= % "OK"))
+(s/def :sun/sunrise                     f/parse)
+(s/def :sun/sunset                      f/parse)
+(s/def :sun/solar_noon                  f/parse)
+(s/def :sun/day_length                  is-pos-int?)
+(s/def :sun/civil_twilight_begin        f/parse)
+(s/def :sun/civil_twilight_end          f/parse)
+(s/def :sun/nautical_twilight_begin     f/parse)
+(s/def :sun/nautical_twilight_end       f/parse)
+(s/def :sun/astronomical_twilight_begin f/parse)
+(s/def :sun/astronomical_twilight_end   f/parse)
+(s/def :sun/results (s/keys :req-un [:sun/sunrise
+									 :sun/sunset
+									 :sun/solar_noon
+									 :sun/day_length
+									 :sun/civil_twilight_begin
+									 :sun/civil_twilight_end
+									 :sun/nautical_twilight_begin
+									 :sun/nautical_twilight_end
+									 :sun/astronomical_twilight_begin
+									 :sun/astronomical_twilight_end]))
+
+(def sunrise-spec (s/keys :req-un [:sun/results :sun/status]))
