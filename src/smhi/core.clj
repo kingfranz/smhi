@@ -219,10 +219,14 @@
 		  width-ratio  (/ (- map-width  (* border-size 2)) sub-width)
 		  height-ratio (/ (- map-height (* border-size 2)) sub-height)
 		  buffer       (buffered-image map-width map-height)
-		  buffer-g2d   (.createGraphics buffer)]
+		  buffer-g2d   (.createGraphics buffer)
+		  time-txt     (f/unparse (f/with-zone (f/formatters :hour-minute) (t/default-time-zone)) (l/local-now))
+		  time-width   (string-width buffer-g2d radar-txt-style time-txt)
+		  time-height  (string-height buffer-g2d radar-txt-style)]
 		(-> buffer-g2d (draw (image-shape 0 0 map-pic) nil)
 					   (scale width-ratio height-ratio)
 					   (draw (image-shape 1 1 sub-radar) nil))
+		(draw (.createGraphics buffer) (string-shape (- 230 time-width) time-height time-txt) radar-txt-style)
 		buffer))
 
 (defn have-radar-data

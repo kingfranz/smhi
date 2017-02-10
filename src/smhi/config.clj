@@ -102,13 +102,13 @@
 (def text-circle-style    (style :foreground :white :background :white))
 (def info-title-style     (style :foreground :white :font lbl-info-txt-font))
 (def info-value-style     (style :foreground :white :font lbl-txt-font))
-(def info-bg-style        (style :foreground (color 32 32 32)
-						   :stroke 2
-						   :background (color 128 128 128 128)))
+(def info-bg-style        (style :foreground (color 32 32 32) :stroke 2
+						   		 :background (color 128 128 128 128)))
 (def date-txt-style       (style :foreground :white :font lbl-info-txt-font))
 (def exception-style      (style :foreground :red :font "ARIAL-64"))
 (def sun-style            (style :foreground :black :font "ARIAL-BOLD-36"))
 (def sun-bg-style         (style :foreground :black :stroke 2 :background (color 140 140 140)))
+(def radar-txt-style      (style :foreground :black :font "ARIAL-BOLD-64"))
 
 (def fixed-temp           true)
 (def min-fixed-temp       -20)

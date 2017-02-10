@@ -51,7 +51,7 @@
 ; return current dat & time as a string
 (defn now-str
     []
-    (f/unparse (f/formatters :mysql) (l/local-now)))
+    (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
 (defn abs
     [x]
