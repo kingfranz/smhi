@@ -1,9 +1,9 @@
 (ns smhi.spec
-    (:require [smhi.utils        :refer :all])
-    (:require [clojure.spec               :as s])
-    (:require [clj-time.core              :as t])
-    (:require [clj-time.format            :as f])
-    (:require [clj-time.local             :as l]))
+    (:require [smhi.utils       :as utils]
+              [clojure.spec     :as s]
+              [clj-time.core    :as t]
+              [clj-time.format  :as f]
+              [clj-time.local   :as l]))
 
 (s/def ::approvedTime  f/parse)
 (s/def ::referenceTime f/parse)
@@ -113,7 +113,7 @@
 (s/def :sun/sunrise                     f/parse)
 (s/def :sun/sunset                      f/parse)
 (s/def :sun/solar_noon                  f/parse)
-(s/def :sun/day_length                  is-pos-int?)
+(s/def :sun/day_length                  utils/is-pos-int?)
 (s/def :sun/civil_twilight_begin        f/parse)
 (s/def :sun/civil_twilight_end          f/parse)
 (s/def :sun/nautical_twilight_begin     f/parse)

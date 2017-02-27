@@ -1,23 +1,21 @@
 (ns smhi.sun
-    (:require [smhi.config        :refer :all])
-    (:require [smhi.utils        :refer :all])
-    (:require [smhi.spec        :refer :all])
-    (:require [clojure.data.json          :as json])
-    (:require [clojure.java.io            :as io])
-    (:require [clojure.spec               :as s])
-    (:require [clojure.string             :as str])
-    (:require [clj-time.core              :as t])
-    (:require [clj-time.format            :as f])
-    (:require [clj-time.local             :as l])
-    (:use seesaw.core)
-	(:use seesaw.border)
-	(:use seesaw.graphics)
-	(:use seesaw.color)
-	(:use seesaw.font)
-	(:require [taoensso.timbre            :as timbre
-               :refer [log  trace  debug  info  warn  error  fatal  report
-                       logf tracef debugf infof warnf errorf fatalf reportf spy get-env]])
-    (:require [taoensso.timbre.appenders.core :as appenders])
+  (:require [smhi.utils                 :as utils]
+            [smhi.spec                  :as spec]
+            [smhi.config                :as conf]
+            [clojure.data.json          :as json]
+            [clojure.java.io            :as io]
+            [clojure.spec               :as s]
+            [clj-time.core              :as t]
+            [clj-time.format            :as f]
+            [clj-time.local             :as l]
+            [seesaw.core                :as sc]
+            [seesaw.border              :as sb]
+            [seesaw.graphics            :as sg]
+            [seesaw.color               :as sclr]
+            [seesaw.font                :as sf]
+            [org.httpkit.client         :as http]
+            [taoensso.timbre            :as timbre]
+            [taoensso.timbre.appenders.core :as appenders])
     (:import (javax.swing JFrame JLabel)
              (java.awt Color Font FontMetrics GraphicsEnvironment)
              (java.io ByteArrayInputStream)
@@ -104,34 +102,34 @@
     ))
 
 (defn send-sun-request
-	[config]
-	(info "getting new sun info")
+	[]
+	(timbre/info "getting new sun info")
 	(try
-		(let [url (str "http://api.sunrise-sunset.org/json?lat=" (:latitude config)
-					   "&lng=" (:longitude config) "&formatted=0")
-			  response (send-json-request url)]
-			(info "successfully got new sun info")
-			(if (= (s/conform sunrise-spec response) :clojure.spec/invalid)
+		(let [url (str "http://api.sunrise-sunset.org/json?lat=" (:latitude @conf/config)
+					   "&lng=" (:longitude @conf/config) "&formatted=0")
+			  response (utils/send-json-request url)]
+			(timbre/info "successfully got new sun info")
+			(if (= (s/conform spec/sunrise-spec response) :clojure.spec/invalid)
 	            (do
-	                (error "------- Invalid Sunrise data -----------")
-	                (error (s/explain-str sunrise-spec response))
-	                (error "-------------------------------------")
+	                (timbre/error "------- Invalid Sunrise data -----------")
+	                (timbre/error (s/explain-str spec/sunrise-spec response))
+	                (timbre/error "-------------------------------------")
 	                nil)
 				(let [new-info (assoc response :timestamp (l/local-now))]
                     (pp-sun new-info println)
                     new-info)))
 		(catch Exception e
             (do
-                (error "---------------------------------------------------")
-                (error "Error in: send-sun-request")
-                (error (str "Exception: " (.getMessage e)))
-                (error "---------------------------------------------------")
+                (timbre/error "---------------------------------------------------")
+                (timbre/error "Error in: send-sun-request")
+                (timbre/error (str "Exception: " (.getMessage e)))
+                (timbre/error "---------------------------------------------------")
                 nil))))
 
 (defn get-sun-info
 	[]
 	(if (or (nil? @sun-info) (> (t/in-minutes (t/interval (:timestamp @sun-info) (l/local-now))) (* 12 60)))
-		(set-var sun-info (send-sun-request smhi-config)))
+		(reset! sun-info (send-sun-request)))
 	@sun-info)
 
 (defn inprint-image
@@ -141,39 +139,39 @@
 			  to-txt (fn [x] (f/unparse (f/with-zone (f/formatter :hour-minute) (t/default-time-zone)) x))
 			  rise-txt (->> sun-info :results :sunrise f/parse to-txt)
 			  set-txt  (->> sun-info :results :sunset f/parse to-txt)
-        up-down-txt (format "↑ %s  ↓ %s" rise-txt set-txt)
-			  up-down-width (string-width g2d sun-style up-down-txt)
-        date-txt (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
-        date-width (string-width g2d sun-style date-txt)
+              up-down-txt (format "↑ %s  ↓ %s" rise-txt set-txt)
+			  up-down-width (utils/string-width g2d conf/sun-style up-down-txt)
+              date-txt (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
+              date-width (utils/string-width g2d conf/sun-style date-txt)
 			  sq-width  400
 			  sq-height 60
 			  sq-radius 50]
-			(draw g2d
-    			(rounded-rect (- (:x sun-point) (/ sq-width 2))
-            				  (- (:y sun-point) 50)
+			(sg/draw g2d
+    			(sg/rounded-rect (- (:x conf/sun-point) (/ sq-width 2))
+            				  (- (:y conf/sun-point) 50)
             				  sq-width
             				  sq-height
             				  sq-radius
             				  sq-radius)
-    			sun-bg-style)
-			(draw g2d
-            	  (string-shape (- (:x sun-point) (/ up-down-width 2))
-                				(- (:y sun-point) 8)
+    			conf/sun-bg-style)
+			(sg/draw g2d
+            	  (sg/string-shape (- (:x conf/sun-point) (/ up-down-width 2))
+                				(- (:y conf/sun-point) 8)
                         		up-down-txt)
-            	  sun-style)
-			(draw g2d
-    			(rounded-rect (- (:x date-point) (/ sq-width 2))
-            				  (- (:y date-point) 50)
+            	  conf/sun-style)
+			(sg/draw g2d
+    			(sg/rounded-rect (- (:x conf/date-point) (/ sq-width 2))
+            				  (- (:y conf/date-point) 50)
             				  sq-width
             				  sq-height
             				  sq-radius
             				  sq-radius)
-    			sun-bg-style)
-			(draw g2d
-            	  (string-shape (- (:x date-point) (/ date-width 2))
-                				(- (:y date-point) 8)
+    			conf/sun-bg-style)
+			(sg/draw g2d
+            	  (sg/string-shape (- (:x conf/date-point) (/ date-width 2))
+                				(- (:y conf/date-point) 8)
                         		date-txt)
-            	  sun-style)
+            	  conf/sun-style)
 			(.dispose g2d)))
 	image)
 

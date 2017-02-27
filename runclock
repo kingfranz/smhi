@@ -1,3 +1,3 @@
 #!/bin/sh
 cd /home/soren/Linux/clojure/smhi
-/usr/bin/java -jar ./target/uberjar/smhi-0.1.0-SNAPSHOT-standalone.jar 1
+/usr/bin/java -jar ./target/uberjar/smhi-1.0.0-standalone.jar 1

@@ -1,24 +1,22 @@
 (ns smhi.utils
-    (:require [smhi.config        :refer :all])
-    (:require [clojure.data.json          :as json])
-    (:require [clojure.java.io            :as io])
-    (:require [clojure.spec               :as s])
-    (:require [clojure.string             :as str])
-    (:require [clj-time.core              :as t])
-    (:require [clj-time.format            :as f])
-    (:require [clj-time.local             :as l])
-    (:require [clojure.math.numeric-tower :as math])
-    (:require [seesaw.timer               :as st])
-    (:require [org.httpkit.client         :as http])
-    (:require [taoensso.timbre            :as timbre
-               :refer [log  trace  debug  info  warn  error  fatal  report
-                       logf tracef debugf infof warnf errorf fatalf reportf spy get-env]])
-    (:require [taoensso.timbre.appenders.core :as appenders])
-    (:use seesaw.core)
-    (:use seesaw.border)
-    (:use seesaw.graphics)
-    (:use seesaw.color)
-    (:use seesaw.font)
+    (:require [smhi.config                :as conf]
+              [clojure.data.json          :as json]
+              [clojure.java.io            :as io]
+              [clojure.spec               :as s]
+              [clojure.string             :as str]
+              [clj-time.core              :as t]
+              [clj-time.format            :as f]
+              [clj-time.local             :as l]
+              [clojure.math.numeric-tower :as math]
+              [seesaw.timer               :as st]
+              [seesaw.core                :as sc]
+              [seesaw.border              :as sb]
+              [seesaw.graphics            :as sg]
+              [seesaw.color               :as sclr]
+              [seesaw.font                :as sf]
+              [org.httpkit.client         :as http]
+              [taoensso.timbre            :as timbre]
+              [taoensso.timbre.appenders.core :as appenders])
     (:import (javax.swing JFrame JLabel)
              (java.awt Color Font FontMetrics GraphicsEnvironment)
              (java.io ByteArrayInputStream)))
@@ -31,7 +29,7 @@
 (defn send-request
     [url resp-type]
     (let [ret-type (if (= resp-type :json) :text :byte-array)
-          {:keys [status headers body error] :as resp} @(http/get url {:timeout smhi-timeout :as ret-type})]
+          {:keys [status headers body error] :as resp} @(http/get url {:timeout conf/smhi-timeout :as ret-type})]
       (if error
           (if (instance? org.httpkit.client.TimeoutException error)
             (throw (Exception. "Timeout"))
@@ -46,7 +44,8 @@
 
 (defn read-image
     [fname]
-    (javax.imageio.ImageIO/read (java.io.File. (str (if-not (clojure.string/includes? fname "/") image-dir) fname))))
+    (javax.imageio.ImageIO/read (java.io.File.
+        (str (when-not (clojure.string/includes? fname "/") (:image-dir @conf/config)) fname))))
 
 ; return current dat & time as a string
 (defn now-str
@@ -67,7 +66,7 @@
 ; get list of available background images
 (defn get-background-list
     []
-    (get-dir-list image-dir #"background-\d+\.(png|jpg|jpeg)$"))
+    (get-dir-list (:image-dir @conf/config) #"background-\d+\.(png|jpg|jpeg)$"))
 
 ; pick a random background
 (defn get-background-name
@@ -106,7 +105,7 @@
     (not (nil? params)))
 
 (defn parse-int [s]
-    (Integer. (re-find  #"\d+" (str/trim s))))
+    (Integer/parseInt s))
 
 (defn is-string?
     [s]
@@ -127,12 +126,12 @@
 (defn update-lbl-map
   [m k v]
   (swap! lbl-map (fn [x] (assoc m k v)))
-  (info (format "New size: %s width: %d height: %d" k (:width v) (:height v))))
+  (timbre/info (format "New size: %s width: %d height: %d" k (:width v) (:height v))))
 
 ; keep track of window sizes for logging
 (defn lbl-info
     [object ^java.awt.Graphics2D g2d]
-    (let [id     (id-of object)
+    (let [id     (sc/id-of object)
           width  (.getWidth object)
           height (.getHeight object)]
         (if (nil? @lbl-map)
@@ -175,48 +174,25 @@
 
 (defn mk-date-strings
     []
-    (map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %))) (range graph-days)))
+    (map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %))) (range (:graph-days @conf/config))))
 
-(def map-pic       (read-image "map3D.png"))
-(def hour-hand     (read-image "clock-hour.png"))
-(def min-hand      (read-image "clock-minute.png"))
-(def sec-hand      (read-image "clock-second.png"))
-(def clock-pic     (read-image "clock-rim.png"))
-(def compass-pic   (read-image "compass.png"))
-(def arrow-pic     (read-image "arrow.png"))
+(def clock-pics (atom nil))
 
-(def symbol-pics   { 1 (read-image "symbol-01A.png")
-                    2 (read-image "symbol-02A.png")
-                    3 (read-image "symbol-03A.png")
-                    4 (read-image "symbol-04A.png")
-                    5 (read-image "symbol-05A.png")
-                    6 (read-image "symbol-06A.png")
-                    7 (read-image "symbol-07A.png")
-                    8 (read-image "symbol-08A.png")
-                    9 (read-image "symbol-09A.png")
-                    10 (read-image "symbol-10A.png")
-                    11 (read-image "symbol-11A.png")
-                    12 (read-image "symbol-12A.png")
-                    13 (read-image "symbol-13A.png")
-                    14 (read-image "symbol-14A.png")
-                    15 (read-image "symbol-15A.png")})
+(def symbol-pics (atom nil))
 
-(def tiny-symbol-pics { 0 (read-image "symbol-00As.png")
-                       1 (read-image "symbol-01As.png")
-                       2 (read-image "symbol-02As.png")
-                       3 (read-image "symbol-03As.png")
-                       4 (read-image "symbol-04As.png")
-                       5 (read-image "symbol-05As.png")
-                       6 (read-image "symbol-06As.png")
-                       7 (read-image "symbol-07As.png")
-                       8 (read-image "symbol-08As.png")
-                       9 (read-image "symbol-09As.png")
-                       10 (read-image "symbol-10As.png")
-                       11 (read-image "symbol-11As.png")
-                       12 (read-image "symbol-12As.png")
-                       13 (read-image "symbol-13As.png")
-                       14 (read-image "symbol-14As.png")
-                       15 (read-image "symbol-15As.png")})
+(def tiny-symbol-pics (atom nil))
+
+(defn setup-images
+    []
+    (reset! tiny-symbol-pics (into {} (map #(hash-map % (read-image (format "symbol-%02dAs.png" %))) (range 16))))
+    (reset! symbol-pics (into {} (map #(hash-map % (read-image (format "symbol-%02dA.png" %))) (range 1 16))))
+    (reset! clock-pics {:map-pic   (read-image "map3D.png")
+                        :hour-hand (read-image "clock-hour.png")
+                        :min-hand (read-image "clock-minute.png")
+                        :sec-hand (read-image "clock-second.png")
+                        :clock-pic (read-image "clock-rim.png")
+                        :compass-pic (read-image "compass.png")
+                        :arrow-pic (read-image "arrow.png")}))
 
 (defn rotate-file
     [log path prefix num-files]
