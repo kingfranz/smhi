@@ -139,10 +139,12 @@
 			  to-txt (fn [x] (f/unparse (f/with-zone (f/formatter :hour-minute) (t/default-time-zone)) x))
 			  rise-txt (->> sun-info :results :sunrise f/parse to-txt)
 			  set-txt  (->> sun-info :results :sunset f/parse to-txt)
+			  week-txt (str "week: " (t/week-number-of-year (l/local-now)))
               up-down-txt (format "↑ %s  ↓ %s" rise-txt set-txt)
 			  up-down-width (utils/string-width g2d conf/sun-style up-down-txt)
               date-txt (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
               date-width (utils/string-width g2d conf/sun-style date-txt)
+              week-width (utils/string-width g2d conf/sun-style week-txt)
 			  sq-width  400
 			  sq-height 60
 			  sq-radius 50]
@@ -171,6 +173,19 @@
             	  (sg/string-shape (- (:x conf/date-point) (/ date-width 2))
                 				(- (:y conf/date-point) 8)
                         		date-txt)
+            	  conf/sun-style)
+			(sg/draw g2d
+    			(sg/rounded-rect (- (:x conf/date-point) (/ 220 2))
+            				  	 (+ (:y conf/date-point) sq-height -50)
+            				  	 220
+            				  	 sq-height
+            				  	 sq-radius
+            				  	 sq-radius)
+    			conf/sun-bg-style)
+			(sg/draw g2d
+            	  (sg/string-shape (- (:x conf/date-point) (/ week-width 2))
+                				   (+ (:y conf/date-point) sq-height -8)
+                        		   week-txt)
             	  conf/sun-style)
 			(.dispose g2d)))
 	image)
