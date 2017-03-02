@@ -116,7 +116,7 @@
 	                (timbre/error "-------------------------------------")
 	                nil)
 				(let [new-info (assoc response :timestamp (l/local-now))]
-                    (pp-sun new-info println)
+;                    (pp-sun new-info println)
                     new-info)))
 		(catch Exception e
             (do

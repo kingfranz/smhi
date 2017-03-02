@@ -104,7 +104,6 @@
 
 (defn xml->style
    [default-fg default-bg default-stroke elems]
-   ;(println "xml->style:" (zip-kw  (conj elems :foreground)))
    (sg/style :foreground (zip-kw  (conj elems :foreground) default-fg)
              :background (zip-kw  (conj elems :background) default-bg)
              :stroke     (zip-int (conj elems :stroke) default-stroke)))

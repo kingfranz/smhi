@@ -38,7 +38,7 @@
               [clj-time.format            :as f]
               [clj-time.local             :as l]
               [clojure.math.numeric-tower :as math]
-             [clojure.core.async   :as async]
+             [clojure.core.async   :as async :only [go]]
              [async-watch.core     :as aw]
               [seesaw.timer               :as st]
               [seesaw.core                :as sc]
@@ -354,7 +354,6 @@
         temp-scale   (:axis-scale temp-info)
         height-scale (/ graph-height conf/axis-span)
         font-metrics (.getFontMetrics g2d (:axis-txt-font @conf/config))]
-    ;(println "tinf`o:" temp-info)
     ; left vertical line
     (sg/draw g2d
       (sg/line left-x top
@@ -483,16 +482,7 @@
                                                              night-end-width
                                                              height)
                                                        (sg/style :background (sclr/color 30 30 30))))]
-                ;(println "sunset-sec:" sunset-sec "x:" (int (sec-2-x sunset-sec)))
                 (doseq [d (range (:graph-days @conf/config))]
-;                   (println (int (day-start d))
-;                            (int night-start-width)
-;                            (int (twilight-start d))
-;                            (int twilight-start-width)
-;                            (int (sunset-start d))
-;                            (int twilight-end-width)
-;                            (int (night-start d))
-;                            (int night-end-width))
                     (draw-morning-night d)
                     (draw-morning-twilight d)
                     (draw-evening-twilight d)
@@ -867,9 +857,13 @@
 
 (defn -main
     [& args]
+    (timbre/merge-config! {:appenders {:println {:enabled? false}}})
     (timbre/merge-config!
-        {:appenders {:spit (utils/max-size-appender {:path "./" :prefix "clock" :max-size 1000000 :num-files 10
-                                                  :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
+        {:appenders
+        	{:spit
+        		(utils/max-size-appender
+        			{:path "./" :prefix "clock" :max-size 1000000 :num-files 10
+                     :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
     
     (setup-config)
     (utils/setup-images)

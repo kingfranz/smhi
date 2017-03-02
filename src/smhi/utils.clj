@@ -197,14 +197,10 @@
 (defn rotate-file
     [log path prefix num-files]
     (let [dir     (get-dir-list path (re-pattern (str prefix "-\\d+\\.log")))
-          ;a1 (println "dir:" dir)
           extract (fn [x] (str/replace x #"^([^-]+-)([0-9]+)(\.log)$" "$2"))
           numbers (map extract dir)
-          ;a3 (println "numbers:" numbers)
           biggest (->> numbers (map parse-int) sort last)
-          ;a4 (println "biggest:" biggest)
           new-big (str path prefix "-" (if (nil? biggest) 0 (inc biggest)) ".log")]
-        ;(println "new-big:" new-big)
         (.renameTo log (io/file new-big))
         (.createNewFile log)))
 
