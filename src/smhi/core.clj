@@ -46,6 +46,7 @@
               [seesaw.graphics            :as sg]
               [seesaw.color               :as sclr]
               [seesaw.font                :as sf]
+              [seesaw.dev                 :as sd]
               [org.httpkit.client         :as http]
               [taoensso.timbre            :as timbre]
               [taoensso.timbre.appenders.core :as appenders])
@@ -575,7 +576,7 @@
     (if (not (nil? @weather-exception))
         (draw-exception-txt widget g2d @weather-exception))
     (catch Exception e
-      (timbre/info (Exception. "draw-curve") "arg1" "arg2"))))
+      (timbre/info (Exception. "draw-curve")))))
 
 ; draw the compass and wind direction
 (defn draw-wind-dir
@@ -782,6 +783,7 @@
 (defn weather-timer-fn
     [x]
     (try
+    	(timbre/info "weather-timer-fn: enter " @weather-timer-ts)
         (if (time-for-forecast?)
             (do
                 (timbre/info "getting new forecast")
@@ -794,17 +796,19 @@
                         (sc/repaint! [(sc/select smhi-frame [:#info])
                                       (sc/select smhi-frame [:#wind-dir])
                                       (sc/select smhi-frame [:#lbl-symbol])
-                                      (sc/select smhi-frame [:#forecast])])))))
+                                      (sc/select smhi-frame [:#forecast])])))
+                (timbre/info "weather-timer-fn: done!"))
+    		(timbre/info "weather-timer-fn: not time yet"))
         (catch Exception e
-            (do
-                (reset! weather-exception e)
-                (reset! weather-timer-ts nil)
-                (timbre/error "---------------------------------------------------")
-                (timbre/error "timbre/error in: weather-timer-fn")
-                (timbre/error (str "Exception: " (.getMessage e)))
-                (timbre/error "---------------------------------------------------")
-                (spit "clock-timbre/error.log" (str (utils/now-str) " weather-timer-fn Exception: " (.getMessage e) "\n") :append true)
-                (timbre/error (Exception. e))))))
+            (reset! weather-exception e)
+            (reset! weather-timer-ts nil)
+            (timbre/error "---------------------------------------------------")
+            (timbre/error (str "Exception in weather-timer-fn: " (.getMessage e)))
+            (timbre/error "---------------------------------------------------")
+            (timbre/error (Exception. e))
+            (spit "clock-error.log"
+            	(str (utils/now-str) " weather-timer-fn Exception: " (.getMessage e) "\n")
+            	:append true))))
 
 (defn radar-timer-fn
     [x]
@@ -821,16 +825,17 @@
             (add-radar-2-queue combo-pic)
             (reset! radar-exception nil)
             (gutils/set-background)
-            (sc/repaint! (sc/select smhi-frame [:#lbl-back])))
+            (sc/repaint! (sc/select smhi-frame [:#lbl-back]))
+            (timbre/info "radar-timer-fn: Done!"))
         (catch Exception e
-            (do
-                (reset! radar-exception e)
-                (timbre/error "---------------------------------------------------")
-                (timbre/error "error in: radar-timer-fn")
-                (timbre/error (str "Exception: " (.getMessage e)))
-                (timbre/error "---------------------------------------------------")
-                (spit "clock-error.log" (str (utils/now-str) " radar-timer-fn Exception: " (.getMessage e) "\n") :append true)
-                (timbre/error (Exception. e))))))
+            (reset! radar-exception e)
+            (timbre/error "---------------------------------------------------")
+            (timbre/error (str "Exception in radar-timer-fn: " (.getMessage e)))
+            (timbre/error "---------------------------------------------------")
+            (timbre/error (Exception. e))
+            (spit "clock-error.log"
+            	(str (utils/now-str) " radar-timer-fn Exception: " (.getMessage e) "\n")
+            	:append true))))
 
 (defn set-screen
     [the-frame args]
@@ -857,13 +862,17 @@
 
 (defn -main
     [& args]
+    (sd/debug!)
     (timbre/merge-config! {:appenders {:println {:enabled? false}}})
+    (timbre/merge-config! {:timestamp-opts {:pattern "MM-dd HH:mm:ss"
+    					   					:locale (java.util.Locale. "sv_SE")
+    					   					:timezone (java.util.TimeZone/getTimeZone "Europe/Stockholm")}
+    					   :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})
     (timbre/merge-config!
         {:appenders
         	{:spit
         		(utils/max-size-appender
-        			{:path "./" :prefix "clock" :max-size 1000000 :num-files 10
-                     :output-fn (partial timbre/default-output-fn {:stacktrace-fonts {}})})}})
+        			{:path "./" :prefix "clock" :max-size 1000000 :num-files 10})}})
     
     (setup-config)
     (utils/setup-images)
@@ -877,7 +886,7 @@
     ; set timer for weather forecast 30 minutes
     (st/timer weather-timer-fn
         :initial-delay (* 1000 2)
-        :delay (* 1000 60 30))
+        :delay (* 1000 60 1))
 
     ; set timer for radar image paint 100ms
     (st/timer  (fn [x] (sc/repaint! (sc/select smhi-frame [:#radar])))

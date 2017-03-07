@@ -34,7 +34,7 @@
 		</wind-style>
 		<rain-style>
 			<foreground>blue</foreground>
-			<background>blue</background>
+			<background>red</background>
 			<stroke>1</stroke>
 		</rain-style>
 		<temp-style>

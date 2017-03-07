@@ -21,10 +21,10 @@
              (java.awt Color Font FontMetrics GraphicsEnvironment)
              (java.io ByteArrayInputStream)))
 
-(defn set-var 
-	"set value of atom"
-	[the-atom value]
-	(swap! the-atom (fn [x] value)))
+; return current dat & time as a string
+(defn now-str
+    []
+    (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
 (defn send-request
     [url resp-type]
@@ -38,19 +38,17 @@
 
 (defn send-json-request
 	[url]
-    (-> url (send-request :json)
-        	(clojure.string/join)
-        	(json/read-str :key-fn keyword)))
+	(let [response (send-request url :json)]
+		(try
+        	(json/read-str (clojure.string/join response) :key-fn keyword)
+		    (catch Exception je
+		    	(spit "clock-error.log" (str (now-str) "\n" response) :append true)
+		    	(throw je)))))
 
 (defn read-image
     [fname]
     (javax.imageio.ImageIO/read (java.io.File.
         (str (when-not (clojure.string/includes? fname "/") (:image-dir @conf/config)) fname))))
-
-; return current dat & time as a string
-(defn now-str
-    []
-    (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
 (defn abs
     [x]
