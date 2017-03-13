@@ -4,6 +4,7 @@
              [clojure.data.zip.xml :as zip-xml]
              [clojure.zip          :as zip]
              [clojure.java.io      :as io]
+             [clojure.pprint       :as pp]
              [seesaw.core          :as sc]
              [seesaw.border        :as sb]
              [seesaw.graphics      :as sg]
@@ -129,6 +130,7 @@
    :wind-style             (xml->style :white :lightgray 1 [root :graph :wind-style])
    :rain-style             (xml->style :blue :blue 1 [root :graph :rain-style])
    :temp-style             (xml->style :red :red 3 [root :graph :temp-style])
+   :cloud-style            (xml->style :green :green 3 [root :graph :cloud-style])
    :axis-style             (xml->style :white :white axis-width [root :axis :axis-style])
    :day-tick-style         (xml->style :white :white 1 [root :axis :day-tick-style])
    :axis-txt-font          axis-txt-font*
@@ -152,5 +154,6 @@
    []
    (let [root (zip/xml-zip (xml/parse-str (slurp "smhi-config.xml")))
          new-config (xml->config root)]
+      ;(pp/pprint new-config)
       (reset! config new-config)))
 

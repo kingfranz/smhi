@@ -192,7 +192,7 @@
         (if-not (nil? @gutils/landscape-pic)
             (draw-image widget g2d @gutils/landscape-pic :both :center :center "background"))
         (catch Exception e
-            (timbre/error (Exception. e)))))
+            (timbre/error e))))
 
 (defn draw-exception-txt
     [widget ^java.awt.Graphics2D g2d e]
@@ -265,7 +265,7 @@
     (if (not (nil? @radar-exception))
         (draw-exception-txt widget g2d @radar-exception))
     (catch Exception e
-        (timbre/error (Exception. e)))))
+        (timbre/error e))))
 
 ; draw the clock
 (defn draw-clock
@@ -284,22 +284,33 @@
         (draw-image widget g2d rotated-min  :min :center :center "minute")
         (draw-image widget g2d rotated-sec  :min :center :center "second"))
     (catch Exception e
-     (timbre/error (Exception. e)))))
+     (timbre/error e))))
+
+; draw graphic forecast of cloud cover
+(defn draw-clouds
+  [^java.awt.Graphics2D g2d data top bottom]
+  (let [y-scale    (/ (inc (- bottom top)) 8)
+        points     (map #(vector (first %) (- bottom (-> % second (* y-scale))))
+        				(get-param data :tcc_mean))]
+    (gutils/draw-line-seq g2d points (:cloud-style @conf/config))))
 
 ; draw graphic forecast of rain
 (defn draw-rain
   [^java.awt.Graphics2D g2d data top bottom]
-  (let [rain-data  (get-param data :pmedian)
-        height     (inc (- bottom top))
-        y-scale    (/ height (:max-rain-level @conf/config))
-        points     (map #(vector (first %) (- bottom (-> % second (* y-scale)))) rain-data)
-        all-points (concat [[(-> points first first) bottom]]
-                    points
-                    [[(-> points last first) bottom]])]
-    (sg/draw g2d
-          (apply sg/polygon all-points)
-          (:rain-style @conf/config))
-    (gutils/draw-line-seq g2d points (sg/style :foreground :white))))
+  (try
+	  (let [rain-data  (get-param data :pmedian)
+	        height     (inc (- bottom top))
+	        y-scale    (/ height (:max-rain-level @conf/config))
+	        points     (map #(vector (first %) (- bottom (-> % second (* y-scale)))) rain-data)
+	        all-points (concat [[(-> points first first) bottom]]
+	                    points
+	                    [[(-> points last first) bottom]])]
+	    (sg/draw g2d
+	          (apply sg/polygon all-points)
+	          (:rain-style @conf/config))
+	    (gutils/draw-line-seq g2d points (sg/style :foreground :white)))
+	  	(catch Exception e
+      		(timbre/error e "draw-rain"))))
 
 ; draw graphic forecast of temperature
 (defn draw-temp
@@ -341,7 +352,7 @@
         (:text-circle-style @conf/config))
     (sg/draw g2d
         (sg/string-shape txt-x txt-y txt)
-        (:txt-style @conf/config))))
+        txt-style)))
 
 ; draw axises for forecast graphics (and scales)
 (defn draw-axis
@@ -415,19 +426,19 @@
       (draw-text g2d
              (- left-x conf/tick-width)
              (- bottom (* text-idx height-scale))
-             (format "%d" (+ temp-start (* temp-scale text-idx)))
+             (format "%d" (int (+ temp-start (* temp-scale text-idx))))
              (:temp-axis-text-style @conf/config)
              true)
       (draw-text g2d
              (+ right-x conf/tick-width)
              (- bottom (* text-idx height-scale))
-             (format "%d" (* text-idx conf/wind-axis-factor))
+             (format "%d" (int (* text-idx conf/wind-axis-factor)))
              (:wind-axis-text-style @conf/config)
              false)
       (draw-text g2d
              (- (/ left-x 2) conf/tick-width)
              (- bottom (* text-idx height-scale))
-             (format "%d" (/ text-idx (/ conf/axis-span (conf/rain-axis-span))))
+             (format "%d" (int (/ text-idx (/ conf/axis-span (conf/rain-axis-span)))))
              (:rain-axis-text-style @conf/config)
              true))))
 
@@ -455,41 +466,46 @@
                   twilight-start       (fn [d] (+ (day-start d) twilight-start-x))
                   sunset-start         (fn [d] (+ (day-start d) sunset-x))
                   night-start          (fn [d] (+ (day-start d) twilight-end-x))
-                  mk-gradient          (fn [xs w l] (sg/style :background
-                                                    (sg/linear-gradient :start [xs 0]
-                                                                     :end [(+ xs w) 0]
-                                                                     :colors [(sclr/color 30 30 30 (if l 255 0))
-                                                                              (sclr/color 30 30 30 (if l 0 255))])))
+                  mk-gradient          (fn [xs w l]
+                  	(sg/style :background
+                        (sg/linear-gradient :start [xs 0]
+                                         :end [(+ xs w) 0]
+                                         :colors [(sclr/color 30 30 30 (if l 255 0))
+                                                  (sclr/color 30 30 30 (if l 0 255))])))
 
-                  draw-morning-night (fn [d] (sg/draw g2d (sg/rect (day-start d)
-                                                             left-y
-                                                             night-start-width
-                                                             height)
-                                                    (sg/style :background (sclr/color 30 30 30))))
-                  draw-morning-twilight (fn [d] (sg/draw g2d
-                                                      (sg/rect (twilight-start d)
-                                                            left-y
-                                                            twilight-start-width
-                                                            height)
-                                                      (mk-gradient (twilight-start d) twilight-start-width true)))
-                  draw-evening-twilight (fn [d] (sg/draw g2d
-                                                      (sg/rect (sunset-start d)
-                                                            left-y
-                                                            twilight-end-width
-                                                            height)
-                                                      (mk-gradient (sunset-start d) twilight-end-width false)))
-                  draw-evening-night (fn [d] (sg/draw g2d (sg/rect (night-start d)
-                                                             left-y
-                                                             night-end-width
-                                                             height)
-                                                       (sg/style :background (sclr/color 30 30 30))))]
+                  draw-morning-night (fn [d] 
+                  	(sg/draw g2d (sg/rect (day-start d)
+                                             left-y
+                                             night-start-width
+                                             height)
+                                    (sg/style :background (sclr/color 30 30 30))))
+                  draw-morning-twilight (fn [d] 
+                  	(sg/draw g2d
+                              (sg/rect (twilight-start d)
+                                    left-y
+                                    twilight-start-width
+                                    height)
+                              (mk-gradient (twilight-start d) twilight-start-width true)))
+                  draw-evening-twilight (fn [d] 
+                  	(sg/draw g2d
+                              (sg/rect (sunset-start d)
+                                    left-y
+                                    twilight-end-width
+                                    height)
+                              (mk-gradient (sunset-start d) twilight-end-width false)))
+                  draw-evening-night (fn [d] 
+                  	(sg/draw g2d (sg/rect (night-start d)
+                                     left-y
+                                     night-end-width
+                                     height)
+                               (sg/style :background (sclr/color 30 30 30))))]
                 (doseq [d (range (:graph-days @conf/config))]
                     (draw-morning-night d)
                     (draw-morning-twilight d)
                     (draw-evening-twilight d)
                     (draw-evening-night d))))
         (catch Exception e
-            (timbre/error (Exception. "draw-sunrise")))))
+            (timbre/error e "draw-sunrise"))))
     
 (defn mk-symbol-targets
   []
@@ -570,13 +586,14 @@
           (draw-axis g2d x-data width top bottom temp-info)
           (draw-rain g2d x-data top (- bottom 3))
           (draw-wind g2d x-data top bottom)
+          (draw-clouds g2d x-data top bottom)
           (draw-temp g2d temp-data temp-info top bottom)
           (draw-graph-symbols g2d @weather-data top width-avail conf/left-axis-width)
           (draw-dates g2d (- height date-height) date-height conf/left-axis-width width-avail)))
     (if (not (nil? @weather-exception))
         (draw-exception-txt widget g2d @weather-exception))
     (catch Exception e
-      (timbre/info (Exception. "draw-curve")))))
+      (timbre/error e "draw-curve"))))
 
 ; draw the compass and wind direction
 (defn draw-wind-dir
@@ -589,7 +606,7 @@
          (draw-image widget g2d (:compass-pic @utils/clock-pics) :min :center :center "compass")
          (draw-image widget g2d rotated-arrow :min :center :center "arrow")))
     (catch Exception e
-      (timbre/error (Exception. e)))))
+      (timbre/error e))))
 
 ; draw the symbol for current weather
 (defn draw-w-symbol
@@ -600,7 +617,7 @@
         (let [symb-num (-> @weather-data first second :Wsymb)]
          (draw-image widget g2d (get @utils/symbol-pics symb-num) :min :center :center "symbol")))
     (catch Exception e
-      (timbre/error (Exception. e)))))
+      (timbre/error e))))
 
 ; draw background, title and value for one section of now info
 (defn draw-info-text
@@ -678,7 +695,7 @@
         (dit 2 1 "Thunder"        (str (v-frmt :tstm) "%"))
         (dit 3 1 "Wind Dir"       (utils/wind-dir-to-str (v-frmt :wd)))))
     (catch Exception e
-      (timbre/error (Exception. e)))))
+      (timbre/error e))))
 
 ; create the frame
 (def smhi-frame
@@ -687,31 +704,31 @@
     :height conf/vert-rez
     :content
       (sc/xyz-panel :items [
-                         (sc/label  :id     :lbl-symbol
-                             :bounds    [(* conf/wnow-width 4) (* conf/wnow-height 0) conf/wnow-width conf/wnow-height]
-                             :foreground conf/lbl-txt-color
-                             :paint     draw-w-symbol)
-                         (sc/label  :id     :wind-dir
-                             :bounds    [(* conf/wnow-width 4) (* conf/wnow-height 1) conf/wnow-width conf/wnow-height]
-                             :foreground conf/lbl-txt-color
-                             :paint     draw-wind-dir)
+         (sc/label  :id     :lbl-symbol
+             :bounds    [(* conf/wnow-width 4) (* conf/wnow-height 0) conf/wnow-width conf/wnow-height]
+             :foreground conf/lbl-txt-color
+             :paint     draw-w-symbol)
+         (sc/label  :id     :wind-dir
+             :bounds    [(* conf/wnow-width 4) (* conf/wnow-height 1) conf/wnow-width conf/wnow-height]
+             :foreground conf/lbl-txt-color
+             :paint     draw-wind-dir)
 
-                         (sc/label  :id     :info  ; info
-                             :bounds    [0 0 conf/info-width conf/info-height]
-                             :paint     draw-info)
-                         (sc/label  :id     :radar  ; radar
-                             :bounds    [0 conf/info-height conf/radar-width conf/radar-height]
-                             :paint     draw-radar)
-                         (sc/label  :id     :clock  ; the clock
-                             :bounds    [conf/radar-width 0 conf/clock-width conf/clock-height]
-                             :listen     [:mouse-clicked (fn [e] (java.lang.System/exit 0))]
-                             :paint     draw-clock)
-                         (sc/label  :id     :forecast  ; forecast graphics
-                             :bounds    [0 conf/clock-height conf/graphics-width conf/graphics-height]
-                             :paint     draw-curve)
-                         (sc/label   :id     :lbl-back ; background
-                             :bounds    [0 0 conf/horiz-res conf/vert-rez]
-                             :paint     draw-background)])))
+         (sc/label  :id     :info  ; info
+             :bounds    [0 0 conf/info-width conf/info-height]
+             :paint     draw-info)
+         (sc/label  :id     :radar  ; radar
+             :bounds    [0 conf/info-height conf/radar-width conf/radar-height]
+             :paint     draw-radar)
+         (sc/label  :id     :clock  ; the clock
+             :bounds    [conf/radar-width 0 conf/clock-width conf/clock-height]
+             :listen     [:mouse-clicked (fn [e] (java.lang.System/exit 0))]
+             :paint     draw-clock)
+         (sc/label  :id     :forecast  ; forecast graphics
+             :bounds    [0 conf/clock-height conf/graphics-width conf/graphics-height]
+             :paint     draw-curve)
+         (sc/label   :id     :lbl-back ; background
+             :bounds    [0 0 conf/horiz-res conf/vert-rez]
+             :paint     draw-background)])))
 
 ; convert the SMHI timestamp to minutes from midnight (or -1 if it's too old)
 (defn mk-delta-time
@@ -805,7 +822,7 @@
             (timbre/error "---------------------------------------------------")
             (timbre/error (str "Exception in weather-timer-fn: " (.getMessage e)))
             (timbre/error "---------------------------------------------------")
-            (timbre/error (Exception. e))
+            (timbre/error e)
             (spit "clock-error.log"
             	(str (utils/now-str) " weather-timer-fn Exception: " (.getMessage e) "\n")
             	:append true))))
@@ -832,7 +849,7 @@
             (timbre/error "---------------------------------------------------")
             (timbre/error (str "Exception in radar-timer-fn: " (.getMessage e)))
             (timbre/error "---------------------------------------------------")
-            (timbre/error (Exception. e))
+            (timbre/error e)
             (spit "clock-error.log"
             	(str (utils/now-str) " radar-timer-fn Exception: " (.getMessage e) "\n")
             	:append true))))
@@ -873,7 +890,8 @@
         	{:spit
         		(utils/max-size-appender
         			{:path "./" :prefix "clock" :max-size 1000000 :num-files 10})}})
-    
+
+	(timbre/info "========= Starting up =========")    
     (setup-config)
     (utils/setup-images)
 
