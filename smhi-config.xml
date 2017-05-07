@@ -21,7 +21,7 @@
 		<radar-ani-delay-sec>2</radar-ani-delay-sec>
 	</radar-image>
 	<graph>
-		<max-rain-level>4</max-rain-level>
+		<max-rain-level>3</max-rain-level>
 		<graph-days>7</graph-days>
 		<temp-range>
 			<min>-20</min>
@@ -38,14 +38,14 @@
 			<stroke>1</stroke>
 		</rain-style>
 		<cloud-style>
-			<foreground>green</foreground>
-			<background>green</background>
-			<stroke>6</stroke>
+			<foreground>lightgreen</foreground>
+			<background>lightgreen</background>
+			<stroke>10</stroke>
 		</cloud-style>
 		<temp-style>
 			<foreground>red</foreground>
 			<background>red</background>
-			<stroke>3</stroke>
+			<stroke>8</stroke>
 		</temp-style>
 	</graph>
 	<axis>

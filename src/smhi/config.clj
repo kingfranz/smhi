@@ -78,7 +78,7 @@
 (def info-value-style      (sg/style :foreground :white :font lbl-txt-font))
 (def info-bg-style         (sg/style :foreground (sclr/color 32 32 32) :stroke 2
 						   		       :background (sclr/color 128 128 128 128)))
-(def date-txt-style        (sg/style :foreground :white :font lbl-info-txt-font))
+(def date-txt-style        (sg/style :foreground :white :background :black :stroke 2 :font "ARIAL-192"))
 (def exception-style       (sg/style :foreground :red :font "ARIAL-64"))
 (def sun-style             (sg/style :foreground :black :font "ARIAL-BOLD-36"))
 (def sun-bg-style          (sg/style :foreground :black :stroke 2 :background (sclr/color 140 140 140)))

@@ -172,7 +172,12 @@
 
 (defn mk-date-strings
     []
-    (map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %))) (range (:graph-days @conf/config))))
+    (map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %)))
+    	 (range (:graph-days @conf/config))))
+
+(defn day-of-week
+	[]
+	(dec (t/day-of-week (l/local-now))))
 
 (def clock-pics (atom nil))
 

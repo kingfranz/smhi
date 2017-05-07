@@ -26,35 +26,36 @@
 ; vncviewer -geometry 1920x1080 -depth 24 piclock.soahojen:1
 
 (ns smhi.core
-    (:require [smhi.utils                 :as utils]
-              [smhi.graph-utils           :as gutils]
-              [smhi.spec                  :as spec]
-              [smhi.config                :as conf]
-              [smhi.sun                   :as sun]
-              [clojure.data.json          :as json]
-              [clojure.java.io            :as io]
-              [clojure.spec               :as s]
-              [clj-time.core              :as t]
-              [clj-time.format            :as f]
-              [clj-time.local             :as l]
-              [clojure.math.numeric-tower :as math]
-             [clojure.core.async   :as async :only [go]]
-             [async-watch.core     :as aw]
-              [seesaw.timer               :as st]
-              [seesaw.core                :as sc]
-              [seesaw.border              :as sb]
-              [seesaw.graphics            :as sg]
-              [seesaw.color               :as sclr]
-              [seesaw.font                :as sf]
-              [seesaw.dev                 :as sd]
-              [org.httpkit.client         :as http]
-              [taoensso.timbre            :as timbre]
-              [taoensso.timbre.appenders.core :as appenders])
-    (:import (javax.swing JFrame JLabel)
-             (java.awt Color Font FontMetrics GraphicsEnvironment)
-             (java.io ByteArrayInputStream)
+    (:require 	(smhi 						[utils         :as utils]
+              								[graph-utils   :as gutils]
+              								[spec          :as spec]
+              								[config        :as conf]
+              								[sun           :as sun])
+              	(clojure.data 				[json          :as json])
+              	(clojure.java 				[io            :as io])
+              	(clojure 					[spec          :as s])
+              	(clj-time 					[core          :as t]
+              								[format        :as f]
+              								[local         :as l])
+              	(clojure.math 				[numeric-tower :as math])
+             	(clojure.core 				[async         :as async :only [go]])
+             	(async-watch 				[core          :as aw])
+              	(seesaw 					[timer         :as st]
+              								[core          :as sc]
+              								[border        :as sb]
+              								[graphics      :as sg]
+              								[color         :as sclr]
+              								[font          :as sf]
+              								[dev           :as sd])
+              	(org.httpkit 				[client        :as http])
+              	(taoensso 					[timbre        :as timbre])
+              	(taoensso.timbre.appenders 	[core          :as appenders]))
+    (:import (javax.swing 	JFrame JLabel)
+             (java.awt 		Color Font FontMetrics GraphicsEnvironment)
+             (java.awt.font TextLayout)
+             (java.io 		ByteArrayInputStream)
              (javax.imageio ImageIO)
-             (java.io File))
+             (java.io 		File))
     (:gen-class))
 
 ; the current weather forecast
@@ -552,17 +553,36 @@
           (sg/draw g2d (sg/image-shape x top img) nil))))))
 
 (defn draw-dates
-  [^java.awt.Graphics2D g2d top height left-side width]
-  (let [date-strings (utils/mk-date-strings)
-        day-width    (/ width (:graph-days @conf/config))]
-    (doseq [date-idx (range (:graph-days @conf/config))
-            :let [dstr-width (utils/string-width g2d conf/date-txt-style (nth date-strings date-idx))
-                  dstr-height (utils/string-height g2d conf/date-txt-style)]]
-      (sg/draw g2d
-          (sg/string-shape (- (+ left-side (/ day-width 2) (* day-width date-idx)) (/ dstr-width 2))
-                  (+ top (/ dstr-height 2) (/ height 2) -3)
-                  (nth date-strings date-idx))
-          conf/date-txt-style))))
+	[^java.awt.Graphics2D g2d left-side top width height]
+  	(let [day-strings  ["M" "T" "O" "T" "F" "L" "S"]
+          day-width    (/ width (:graph-days @conf/config))
+          dstr-height  (utils/string-height g2d conf/date-txt-style)
+          day-center-y (+ top (/ height 2))
+          day-of-week  (utils/day-of-week)
+          font-context (.getFontRenderContext g2d)
+          fnt          (sf/font "ARIAL-192")
+          txt-stroke   (sg/stroke :width 3)
+          stroke-style (sg/style :foreground :white :background :white)
+          fill-style   (sg/style :foreground :black :background :black :font fnt)]
+    	(doseq [day-offset (range (:graph-days @conf/config))
+            	:let [day-idx (mod (+ day-of-week day-offset) 7)
+            		  day-str (nth day-strings day-idx)
+            		  dstr-width (utils/string-width g2d conf/date-txt-style day-str)
+            		  day-center-x (+ left-side (/ day-width 2) (* day-width day-offset))
+            		  txt-layout (TextLayout. day-str fnt font-context)
+            		  outline    (.getOutline txt-layout nil)
+            		  out-bounds (.getBounds outline)
+            		  stroke-out (.createStrokedShape txt-stroke outline)
+            		  txt-x      (- day-center-x (/ (.width out-bounds) 2))
+            		  txt-y      (+ day-center-y (/ (.height out-bounds) 2))]]
+            (sg/draw g2d
+          		(sg/string-shape txt-x txt-y day-str)
+          		fill-style)
+            (sg/push g2d
+            	(-> g2d
+	            	(sg/translate txt-x txt-y)
+	            	(sg/draw stroke-out stroke-style)))
+    		)))
 
 ; draw the forecast graphics
 (defn draw-curve
@@ -572,24 +592,24 @@
     (if (not (nil? @weather-data))
         (let [width        (.getWidth widget)
               height       (.getHeight widget)
-              date-height  30
+              btm-space    10
               top          conf/axis-width
-              bottom       (- height date-height conf/axis-width)
+              bottom       (- height btm-space conf/axis-width)
               graph-height (- bottom top)
               width-avail  (- width conf/left-axis-width conf/right-axis-width)
               x-scale      (/ width-avail (conf/week-minutes))
               x-data       (map #(vector (-> % first (* x-scale) (+ conf/left-axis-width) int) (second %)) @weather-data)
               temp-data    (map #(vector (first %) (->> % second (* 1.0))) (get-param x-data :t))
               temp-info    (get-temp-scaling temp-data top bottom)]
-          (gutils/fill g2d (sclr/color 128 128 128 128) width height)
-          (draw-sunrise g2d conf/left-axis-width top width-avail (inc (- bottom top)))
-          (draw-axis g2d x-data width top bottom temp-info)
-          (draw-rain g2d x-data top (- bottom 3))
-          (draw-wind g2d x-data top bottom)
-          (draw-clouds g2d x-data top bottom)
-          (draw-temp g2d temp-data temp-info top bottom)
-          (draw-graph-symbols g2d @weather-data top width-avail conf/left-axis-width)
-          (draw-dates g2d (- height date-height) date-height conf/left-axis-width width-avail)))
+          (gutils/fill        g2d (sclr/color 128 128 128 128) width height)
+          (draw-sunrise       g2d conf/left-axis-width top width-avail (inc (- bottom top)))
+          (draw-dates         g2d conf/left-axis-width top width-avail (inc (- bottom top)))
+          (draw-axis          g2d x-data width top bottom temp-info)
+          (draw-rain          g2d x-data top (- bottom 3))
+          (draw-wind          g2d x-data top bottom)
+          (draw-clouds        g2d x-data top bottom)
+          (draw-temp          g2d temp-data temp-info top bottom)
+          (draw-graph-symbols g2d @weather-data top width-avail conf/left-axis-width)))
     (if (not (nil? @weather-exception))
         (draw-exception-txt widget g2d @weather-exception))
     (catch Exception e
