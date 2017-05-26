@@ -30,6 +30,7 @@
               								[graph-utils   :as gutils]
               								[spec          :as spec]
               								[config        :as conf]
+              								[date          :as date]
               								[sun           :as sun])
               	(clojure.data 				[json          :as json])
               	(clojure.java 				[io            :as io])
@@ -563,21 +564,24 @@
           fnt          (sf/font "ARIAL-192")
           txt-stroke   (sg/stroke :width 3)
           stroke-style (sg/style :foreground :white :background :white)
-          fill-style   (sg/style :foreground :black :background :black :font fnt)]
+          fill-style   (sg/style :foreground :black :background :black :font fnt)
+          red-style    (sg/style :foreground :red :background :red :font fnt)]
     	(doseq [day-offset (range (:graph-days @conf/config))
-            	:let [day-idx (mod (+ day-of-week day-offset) 7)
-            		  day-str (nth day-strings day-idx)
-            		  dstr-width (utils/string-width g2d conf/date-txt-style day-str)
+            	:let [day-idx      (mod (+ day-of-week day-offset) 7)
+            		  day-str      (nth day-strings day-idx)
+            		  dstr-width   (utils/string-width g2d conf/date-txt-style day-str)
             		  day-center-x (+ left-side (/ day-width 2) (* day-width day-offset))
-            		  txt-layout (TextLayout. day-str fnt font-context)
-            		  outline    (.getOutline txt-layout nil)
-            		  out-bounds (.getBounds outline)
-            		  stroke-out (.createStrokedShape txt-stroke outline)
-            		  txt-x      (- day-center-x (/ (.width out-bounds) 2))
-            		  txt-y      (+ day-center-y (/ (.height out-bounds) 2))]]
+            		  txt-layout   (TextLayout. day-str fnt font-context)
+            		  outline      (.getOutline txt-layout nil)
+            		  out-bounds   (.getBounds outline)
+            		  stroke-out   (.createStrokedShape txt-stroke outline)
+            		  txt-x        (- day-center-x (/ (.width out-bounds) 2))
+            		  txt-y        (+ day-center-y (/ (.height out-bounds) 2))
+            		  day-date     (t/plus (l/local-now) (t/days day-offset))
+            		  day-fill     (if (date/red-day? day-date) red-style fill-style)]]
             (sg/draw g2d
           		(sg/string-shape txt-x txt-y day-str)
-          		fill-style)
+          		day-fill)
             (sg/push g2d
             	(-> g2d
 	            	(sg/translate txt-x txt-y)

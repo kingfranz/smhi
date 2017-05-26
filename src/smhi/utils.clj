@@ -36,14 +36,25 @@
             (throw (Exception. "unknown network errror")))
           body)))
 
+(defn fix-text
+	[r func]
+	(let [r* (if (coll? r) (str/join r) r)]
+		(if (some? func)
+			(func r*)
+			r*)))
+
 (defn send-json-request
-	[url]
+	([url]
+	(send-json-request url nil))
+	([url func]
 	(let [response (send-request url :json)]
 		(try
-        	(json/read-str (clojure.string/join response) :key-fn keyword)
+        	(-> response
+        		(fix-text func)
+        		(json/read-str :key-fn keyword))
 		    (catch Exception je
 		    	(spit "clock-error.log" (str (now-str) "\n" response) :append true)
-		    	(throw je)))))
+		    	(throw je))))))
 
 (defn read-image
     [fname]
