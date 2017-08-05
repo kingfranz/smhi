@@ -1,159 +1,270 @@
 (ns smhi.config
-   (:require [clojure.xml          :as cxml]
-             [clojure.data.xml     :as xml]
-             [clojure.data.zip.xml :as zip-xml]
-             [clojure.zip          :as zip]
-             [clojure.java.io      :as io]
-             [clojure.pprint       :as pp]
-             [seesaw.core          :as sc]
-             [seesaw.border        :as sb]
-             [seesaw.graphics      :as sg]
-             [seesaw.color         :as sclr]
-             [seesaw.font          :as sf]))
+	(:require 	(clojure.tools.reader 	[edn      :as edn])
+				(seesaw 				[core     :as sc]
+				 						[border   :as sb]
+				 						[graphics :as sg]
+				 						[color    :as sclr]
+				 						[font     :as sf])
+    			(clojure				[pprint   :as pp]
+                    					[string   :as str])))
+
+;;-----------------------------------------------------------------------------
 
 (def units
-  {:msl      {:str "Air Pressure"            :is-int false :keep true  :unit "hPa"}
-   :t        {:str "Temperature"             :is-int false :keep true  :unit "C"}
-   :vis      {:str "Visibility"              :is-int false :keep false :unit "km"}
-   :wd       {:str "Wind Dir"                :is-int true  :keep true  :unit "degree"}
-   :ws       {:str "Wind Speed"              :is-int false :keep true  :unit "m/s"}
-   :r        {:str "Humidity"                :is-int true  :keep true  :unit "%"}
-   :tstm     {:str "Thunder"                 :is-int true  :keep true  :unit "%"}
-   :tcc_mean {:str "Total Clouds"            :is-int true  :keep true  :unit "octas"}
-   :lcc_mean {:str "Low Clouds"              :is-int true  :keep false :unit "octas"}
-   :mcc_mean {:str "Medium Clouds"           :is-int true  :keep false :unit "octas"}
-   :hcc_mean {:str "High Clouds"             :is-int true  :keep false :unit "octas"}
-   :gust     {:str "Gust Speed"              :is-int false :keep true  :unit "m/s"}
-   :pmin     {:str "Min Precip"              :is-int false :keep true  :unit "mm/h"}
-   :pmax     {:str "Max Precip"              :is-int false :keep true  :unit "mm/h"}
-   :spp      {:str "Percent Frozen"          :is-int true  :keep true  :unit "%"}
-   :pcat     {:str "Precip Category"         :is-int true  :keep true  :unit "category"}
-   :pmean    {:str "Mean Precip Intensity"   :is-int false :keep true  :unit "mm/h"}
-   :pmedian  {:str "Median Precip Intensity" :is-int false :keep true  :unit "mm/h"}
-   :Wsymb    {:str "Symbol"                  :is-int true  :keep true  :unit "code"}})
+  	{:msl      {:str "Air Pressure"            :is-int true  :keep true  :unit "hPa"}
+	 :t        {:str "Temperature"             :is-int true  :keep true  :unit "C"}
+	 :vis      {:str "Visibility"              :is-int false :keep false :unit "km"}
+	 :wd       {:str "Wind Dir"                :is-int true  :keep true  :unit "degree"}
+	 :ws       {:str "Wind Speed"              :is-int true  :keep true  :unit "m/s"}
+	 :r        {:str "Humidity"                :is-int true  :keep true  :unit "%"}
+	 :tstm     {:str "Thunder"                 :is-int true  :keep true  :unit "%"}
+	 :tcc_mean {:str "Total Clouds"            :is-int true  :keep true  :unit "octas"}
+	 :lcc_mean {:str "Low Clouds"              :is-int true  :keep false :unit "octas"}
+	 :mcc_mean {:str "Medium Clouds"           :is-int true  :keep false :unit "octas"}
+	 :hcc_mean {:str "High Clouds"             :is-int true  :keep false :unit "octas"}
+	 :gust     {:str "Gust Speed"              :is-int true  :keep true  :unit "m/s"}
+	 :pmin     {:str "Min Precip"              :is-int false :keep true  :unit "mm/h"}
+	 :pmax     {:str "Max Precip"              :is-int false :keep true  :unit "mm/h"}
+	 :spp      {:str "Percent Frozen"          :is-int true  :keep true  :unit "%"}
+	 :pcat     {:str "Precip Category"         :is-int true  :keep true  :unit "category"}
+	 :pmean    {:str "Mean Precip Intensity"   :is-int true  :keep true  :unit "mm/h"}
+	 :pmedian  {:str "Median Precip Intensity" :is-int true  :keep true  :unit "mm/h"}
+	 :Wsymb    {:str "Symbol"                  :is-int true  :keep true  :unit "code"}})
 
-(def res-scale             1)
-(def axis-font-name        (str "ARIAL-" (int (* res-scale 20))))
-(def axis-width            2)
+;;-----------------------------------------------------------------------------
 
-(def config (atom nil))
+(def ^:private horizontal-resolution 1920)
+(def ^:private vertical-resolution   1080)
 
-(def horiz-res             (* 1920 res-scale))
-(def vert-rez              (* 1080 res-scale))
-(def graphics-height       (* vert-rez 1/3))
-(def graphics-width        horiz-res)
-(def clock-height          (- vert-rez graphics-height))
-(def clock-width           clock-height)
-(def radar-height          (* clock-height 2/3))
-(def radar-width           (- horiz-res clock-width))
-(def info-height           (- clock-height radar-height))
-(def info-width            radar-width)
-(def wnow-height           (/ (- clock-height radar-height) 2))
-(def wnow-width            (/ radar-width 5))
-(def sun-point             {:x (+ radar-width (/ clock-width 2)) :y (- (/ clock-height 2) 100)})
-(def date-point            {:x (+ radar-width (/ clock-width 2)) :y (+ (/ clock-height 2) 150)})
+(def ^:private default-config
+	{
+	:radar-sub-width           112
+	:radar-sub-height          45
+	:radar-sub-upper-left-x    110
+	:radar-sub-upper-left-y    595
+	:radar-timer-initial-sec   0
+	:radar-interval-minutes    5
+	:radar-fps                 10
+	:radar-ani-hours           5
+	:radar-ani-delay-sec       6
+	:radar-url                 "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
+	:radar-txt-style           (sg/style :foreground :black :font "ARIAL-BOLD-64")
+    :radar-border-size         10
+    :radar-txt-x               220
+    :radar-txt-y               140
+	:radar-height              (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3)
+	:radar-width               (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3)))
+ 
+ 	:clock-fps                 1
+  	:clock-delay-sec           6
+	:clock-height              (- vertical-resolution (* vertical-resolution 1/3))
+	:clock-width               (- vertical-resolution (* vertical-resolution 1/3))
+   
+  	:weather-timer-initial-sec 0
+	:weather-timer-delay-min   30
+	:wind-style                (sg/style :foreground :white :background :lightgray :stroke 1)
+	:rain-style                (sg/style :foreground :blue :background :blue :stroke 1)
+	:temp-style                (sg/style :foreground :red :background :red :stroke 8)
+	:cloud-style               (sg/style :foreground :green :background :lightgreen :stroke 8)
+	:axis-style                (sg/style :foreground :white :background :white :stroke 2)
+	:day-tick-style            (sg/style :foreground :white :background :white :stroke 1)
+	:axis-txt-font             "ARIAL-BOLD-20"
+	:temp-axis-text-style      (sg/style :foreground :red :background :red :stroke 1 :font "ARIAL-BOLD-20")
+	:wind-axis-text-style      (sg/style :foreground :grey :background :grey :stroke 1 :font "ARIAL-BOLD-20")
+	:rain-axis-text-style      (sg/style :foreground :blue :background :blue :stroke 1 :font "ARIAL-BOLD-20")
+	:zero-line-style           (sg/style :foreground :white :background :white :stroke 1)
+	:text-circle-style         (sg/style :foreground :white :background :white :stroke 1)
+	:min-fixed-temp            -20
+	:max-fixed-temp            30
+	:image-dir                 "resources/"
+	:latitude                  "58.786869"
+	:longitude                 "14.265020"
+	:weather-url               "http://opendata-download-metfcst.smhi.se"
+	:category                  "pmp2g"
+	:version                   "2"
+	:widget-style              (sclr/color 32 32 32 0)
+	:degree-char               "\u00b0"
+	:max-rain-level            3
+ 	:right-axis-extra          30
+	:wnow-title-style          (sg/style :foreground :white :font "ARIAL-18")
+	:wnow-value-style          (sg/style :foreground :white :font "ARIAL-48")
+	:info-bg-style             (sg/style :foreground (sclr/color 32 32 32) :stroke 2
+							    		 :background (sclr/color 128 128 128 128))
+	:date-txt-style            (sg/style :foreground :white :background :black :stroke 2 :font "ARIAL-192")
+	:exception-style           (sg/style :foreground :red   :font "ARIAL-64")
+	:graph-days                7
+	:axis-width                2
+ 	:wnow-vt-adjust            -3
+ 	:wnow-vv-adjust            -19
+  	:forecast-bg		       (sclr/color 128 128 128 128)
+   	:day-font                  (sf/font "ARIAL-192")
+    :day-stroke-width          3
+    :symbols-per-day           3
+    
+	:horiz-res                 horizontal-resolution
+	:vert-rez                  vertical-resolution
+	:graphics-height           (* vertical-resolution 1/3)
+	:graphics-width            horizontal-resolution
+	:info-height               (- (- vertical-resolution (* vertical-resolution 1/3)) (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3))
+	:info-width                (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3)))
+	:wnow-height               (/ (- (- vertical-resolution (* vertical-resolution 1/3)) (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3)) 2)
+	:wnow-width                (/ (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3))) 5)
+	
+ 	:sun-box-dw                50
+ 	:sun-box-dh                15
+ 	:sun-box-dy                40
+ 	:sun-box-radius            50
+	:sun-txt-style             (sg/style :foreground :black :font "ARIAL-BOLD-36")
+	:sun-box-style             (sg/style :foreground :black :stroke 2 :background (sclr/color 140 140 140))
+	:up-down-dy                100
+	:date-dy                   -100
+	:week-dy                   -180
+ 	
+	
+ 	:left-axis-width           100
+	:right-axis-width          50
+    
+	:temp-padding              5
+	:wind-padding              2
+	:tick-width                10
+	:temp-text-x               (- 100 10 3)
+	:wind-text-x               (- (/ 100 2) 10 3)
+	:axis-span                 10
+	:wind-axis-factor          3
+	:smhi-timeout              5000
+	:twilight-begin            :civil_twilight_begin
+	:twilight-end              :civil_twilight_end
+	:wnow-top-border           9
+    :wnow-center-border        6
+    :wnow-bottom-border        14
+    :wnow-side-border          10
+    :wnow-title-part           1/3
+    :wnow-radius               10
+    })
 
-(def left-axis-width       100)
-(def right-axis-width      50)
-(defn week-minutes []         (* (:graph-days @config) 24 60))
-(def temp-padding          5)
-(def wind-padding          2)
-(def tick-width            10)
-(def temp-text-x           (- left-axis-width tick-width 3))
-(def wind-text-x           (- (/ left-axis-width 2) tick-width 3))
-(def axis-span             10)
-(defn rain-axis-span []       (:max-rain-level @config))
-(def wind-axis-factor      3)
-(def smhi-timeout          5000)
-(def twilight-begin        :civil_twilight_begin)
-(def twilight-end          :civil_twilight_end)
+;;-----------------------------------------------------------------------------
 
-(defn radar-interval-ms []    (* (:radar-interval-minutes @config) 60 1000))
-(defn max-radar-queue-size [] (* (/ 60 (:radar-interval-minutes @config)) (:radar-ani-hours @config)))
-(def lbl-txt-color         "#FFFFFF")
-(def lbl-txt-font          (str "ARIAL-" (int (* res-scale 48))))
-(def lbl-info-txt-font     (str "ARIAL-" (int (* res-scale 18))))
-(def degree-char           "\u00b0")
-(def info-title-style      (sg/style :foreground :white :font lbl-info-txt-font))
-(def info-value-style      (sg/style :foreground :white :font lbl-txt-font))
-(def info-bg-style         (sg/style :foreground (sclr/color 32 32 32) :stroke 2
-						   		       :background (sclr/color 128 128 128 128)))
-(def date-txt-style        (sg/style :foreground :white :background :black :stroke 2 :font "ARIAL-192"))
-(def exception-style       (sg/style :foreground :red :font "ARIAL-64"))
-(def sun-style             (sg/style :foreground :black :font "ARIAL-BOLD-36"))
-(def sun-bg-style          (sg/style :foreground :black :stroke 2 :background (sclr/color 140 140 140)))
-(def radar-txt-style       (sg/style :foreground :black :font "ARIAL-BOLD-64"))
+(def ^:private config-store (atom default-config))
 
-(def fixed-temp            true)
-(defn tot-temp-span []        (if fixed-temp (- (:max-fixed-temp @config) (:min-fixed-temp @config)) 30))
+;;-----------------------------------------------------------------------------
 
-(defn parse-int
-   [s]
-   (Integer/parseInt s))
+(defn config
+  	"retrive a config value"
+  	[kw]
+    {:pre [(keyword? kw)]}
+   	(when (nil? (get @config-store kw))
+      	(throw (ex-info (str "config: unknown key: " kw) {:cause :keyword})))
+    (get @config-store kw))
 
-(defn zip-txt
-   [elems default-value]
-   (or (some->> elems (apply zip-xml/xml1->) zip-xml/text) default-value))
+(defn week-minutes
+	[]
+	(* (config :graph-days) 24 60))
 
-(defn zip-int
-   [elems default-value]
-   (or (some->> (zip-txt elems nil) parse-int) default-value))
+(defn rain-axis-span
+	[]
+	(config :max-rain-level))
 
-(defn zip-kw
-   [elems default-value]
-   (or (some->> (zip-txt elems nil) keyword) default-value))
+(defn radar-interval-ms
+	[]
+	(* (config :radar-interval-minutes) 60 1000))
 
-(defn xml->style
-   [default-fg default-bg default-stroke elems]
-   (sg/style :foreground (zip-kw  (conj elems :foreground) default-fg)
-             :background (zip-kw  (conj elems :background) default-bg)
-             :stroke     (zip-int (conj elems :stroke) default-stroke)))
+(defn max-radar-queue-size
+	[]
+	(* (/ 60 (config :radar-interval-minutes)) (config :radar-ani-hours)))
 
-(defn xml->fontstyle
-   [default-fg default-bg default-stroke _font elems]
-   (sg/update-style (xml->style default-fg default-bg default-stroke elems) :font _font))
+;;-----------------------------------------------------------------------------
 
-(defn xml->config
-   [root]
-   (let [axis-txt-font* (sf/font (zip-txt [root :axis :font] (str "ARIAL-" (int (* res-scale 20)))))]
-   {
-   :max-rain-level         (zip-int [root :graph :max-rain-level] 5)
-   :graph-days             (zip-int [root :graph :graph-days] 7)
-   :radar-sub-width        (zip-int [root :radar-image :radar-sub-width] 112)
-   :radar-sub-height       (zip-int [root :radar-image :radar-sub-height] 45)
-   :radar-sub-upper-left-x (zip-int [root :radar-image :radar-sub-upper-left-x] 110)
-   :radar-sub-upper-left-y (zip-int [root :radar-image :radar-sub-upper-left-y] 595)
-   :radar-interval-minutes (zip-int [root :radar-image :radar-interval-minutes] 5)
-   :radar-fps              (zip-int [root :radar-image :radar-fps] 10)
-   :radar-ani-hours        (zip-int [root :radar-image :radar-ani-hours] 5)
-   :radar-ani-delay-sec    (zip-int [root :radar-image :radar-ani-delay-sec] 2)
-   :wind-style             (xml->style :white :lightgray 1 [root :graph :wind-style])
-   :rain-style             (xml->style :blue :blue 1 [root :graph :rain-style])
-   :temp-style             (xml->style :red :red 3 [root :graph :temp-style])
-   :cloud-style            (xml->style :green :green 3 [root :graph :cloud-style])
-   :axis-style             (xml->style :white :white axis-width [root :axis :axis-style])
-   :day-tick-style         (xml->style :white :white 1 [root :axis :day-tick-style])
-   :axis-txt-font          axis-txt-font*
-   :temp-axis-text-style   (xml->fontstyle :red :red 1 axis-txt-font* [root :axis :temp-axis-txt-style])
-   :wind-axis-text-style   (xml->fontstyle :grey :grey 1 axis-txt-font* [root :axis :wind-axis-txt-style])
-   :rain-axis-text-style   (xml->fontstyle :blue :blue 1 axis-txt-font* [root :axis :rain-axis-txt-style])
-   :zero-line-style        (xml->style :white :white 1 [root :axis :zero-line-style])
-   :text-circle-style      (xml->style :white :white 1 [root :axis :text-circle-style])
-   :min-fixed-temp         (zip-int [root :graph :temp-range :min] -20)
-   :max-fixed-temp         (zip-int [root :graph :temp-range :max] 30)
-   :image-dir              (zip-txt [root :image-dir] "resources/")
-   :latitude               (zip-txt [root :location :latitude] "58.786869")
-   :longitude              (zip-txt [root :location :longitude] "14.265020")
-   :weather-url            (zip-txt [root :smhi :weather-url] "http://opendata-download-metfcst.smhi.se")
-   :radar-url              (zip-txt [root :smhi :radar-url] "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png")
-   :category               (zip-txt [root :smhi :category] "pmp2g")
-   :version                (zip-txt [root :smhi :version] "2")
-   }))
+(defn- convert-stroke-part
+  	[s]
+   	(if (nil? s)
+      	nil
+      	(.getLineWidth s)))
+
+(defn- convert-rgba-part
+  	[clr]
+   	(if (nil? clr)
+      	[]
+      	[ (.getRed clr) (.getGreen clr) (.getBlue clr) (.getAlpha clr) ]))
+
+(defn- convert-font-part
+  	[fnt]
+   	(if (nil? fnt)
+      	""
+      	(str (.getName fnt)
+        	 (if (.isBold fnt) "-BOLD" "")
+             (if (.isItalic fnt) "-ITALIC" "")
+             "-" (.getSize fnt))))
+
+(defrecord SMHIStyle
+  	[foreground
+     background
+     stroke
+     font])
+
+(defn- convert-style
+  	[s]
+   	(SMHIStyle. (convert-rgba-part   (:foreground s))
+                (convert-rgba-part   (:background s))
+                (convert-stroke-part (:stroke s))
+                (convert-font-part   (:font s))))
+
+(defrecord SMHIColor
+  	[color])
+
+(defn- convert-color
+  	[clr]
+   	(SMHIColor. (convert-rgba-part clr)))
+
+(defrecord SMHIFont
+  	[font])
+
+(defn- convert-font
+  	[fnt]
+   	(SMHIFont. (convert-font-part fnt)))
+
+(defn- convert-config
+  	[con]
+   	(into {}
+        (for [kv (seq con)]
+           	(cond
+              	(= (type (val kv)) seesaw.graphics.Style)
+               		[(key kv) (convert-style (val kv))]
+              	(= (type (val kv)) java.awt.Color)
+               		[(key kv) (convert-color (val kv))]
+              	(= (type (val kv)) java.awt.Font)
+               		[(key kv) (convert-font (val kv))]
+               	:else kv))))
+
+(defn- mk-rgba
+  	[v]
+    (when (not (empty? v))
+      	(apply sclr/color v)))
+
+(defn- create-style
+  	[value]
+    (sg/style :foreground (mk-rgba (:foreground value))
+              :stroke     (:stroke value)
+              :background (mk-rgba (:background value))
+              :font       (when (not (str/blank? (:font value))) (:font value))))
+
+(defn- create-color
+  	[value]
+    (mk-rgba (:color value)))
+
+(defn- create-font
+  	[value]
+    (sf/font (:font value)))
 
 (defn read-config-file
-   []
-   (let [root (zip/xml-zip (xml/parse-str (slurp "smhi-config.xml")))
-         new-config (xml->config root)]
-      ;(pp/pprint new-config)
-      (reset! config new-config)))
+	[]
+ 	(spit "smhi-config.dat" (with-out-str (prn (convert-config default-config))))
+	(some->> "smhi-config.dat"
+             slurp
+             (edn/read-string {:readers {'smhi.config.SMHIStyle create-style
+                                         'smhi.config.SMHIColor create-color
+                                         'smhi.config.SMHIFont  create-font}})
+             (reset! config-store)
+             ))
+
+;;-----------------------------------------------------------------------------
 

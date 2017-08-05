@@ -1,40 +1,77 @@
 (ns smhi.utils
-    (:require [smhi.config                :as conf]
-              [clojure.data.json          :as json]
-              [clojure.java.io            :as io]
-              [clojure.spec               :as s]
-              [clojure.string             :as str]
-              [clj-time.core              :as t]
-              [clj-time.format            :as f]
-              [clj-time.local             :as l]
-              [clojure.math.numeric-tower :as math]
-              [seesaw.timer               :as st]
-              [seesaw.core                :as sc]
-              [seesaw.border              :as sb]
-              [seesaw.graphics            :as sg]
-              [seesaw.color               :as sclr]
-              [seesaw.font                :as sf]
-              [org.httpkit.client         :as http]
-              [taoensso.timbre            :as timbre]
-              [taoensso.timbre.appenders.core :as appenders])
-    (:import (javax.swing JFrame JLabel)
-             (java.awt Color Font FontMetrics GraphicsEnvironment)
-             (java.io ByteArrayInputStream)))
+    (:require 	(smhi 			[config   :refer [config]])
+              	(clojure.data 	[json     :as json])
+              	(clojure.java 	[io       :as io])
+              	(clojure 		[string   :as str])
+               	(clojure.spec 	[alpha    :as s])
+              	(clj-time 		[core     :as t]
+              					[format   :as f]
+              					[local    :as l])
+              	(org.httpkit 	[client   :as http])
+              	(taoensso 		[timbre   :as log]))
+    (:import (javax.swing 	JFrame JLabel)
+             (java.awt 		Color Font FontMetrics GraphicsEnvironment)
+             (java.awt.font TextLayout)
+             (java.io 		ByteArrayInputStream File)
+             (javax.imageio ImageIO))
+    )
 
-; return current dat & time as a string
+;;-----------------------------------------------------------------------------
+
+(defmacro q-valid?
+	[sp v]
+	`(if-not (s/valid? ~sp ~v)
+		(log/error
+			(str "\n---------- " ~*file* " " ~(:line (meta &form)) " ------------\n"
+				 ~v
+				 "\n---------------------------------------\n"
+				 (s/explain-str ~sp ~v)
+				 "\n---------------------------------------\n"))
+		true))
+
+(defn spy
+	([x]
+	(log/debug "spy:" (type x) ">>" (if (coll? x) (doall (for [e x] (pr-str e " "))) x) "<<")
+	x)
+	([t x]
+	(log/debug "spy:" t (type x) ">>" (if (coll? x) (doall (for [e x] (pr-str e " "))) x) "<<")
+	x))
+
+(defn qspy
+  	[txt coll]
+    (log/debug txt " " (doall (for [e coll] (str e " "))))
+    coll)
+
+(defn current-year
+	[]
+	(t/year (l/local-now)))
+
+(defn current-month
+	[]
+	(t/month (l/local-now)))
+
+(defn hour-minute
+  	([]
+   	(hour-minute (l/local-now)))
+  	([dt]
+   	(f/unparse (f/with-zone (f/formatters :hour-minute) (t/default-time-zone)) dt)))
+
+;;-----------------------------------------------------------------------------
+
 (defn now-str
+  	"return current dat & time as a string"
     []
     (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
 (defn send-request
     [url resp-type]
     (let [ret-type (if (= resp-type :json) :text :byte-array)
-          {:keys [status headers body error] :as resp} @(http/get url {:timeout conf/smhi-timeout :as ret-type})]
-      (if error
-          (if (instance? org.httpkit.client.TimeoutException error)
-            (throw (Exception. "Timeout"))
-            (throw (Exception. "unknown network errror")))
-          body)))
+          {:keys [status headers body error] :as resp} @(http/get url {:timeout (config :smhi-timeout) :as ret-type})]
+      	(if error
+        	(if (instance? org.httpkit.client.TimeoutException error)
+          		(throw (Exception. "Timeout"))
+            	(throw (Exception. "unknown network errror")))
+          	body)))
 
 (defn fix-text
 	[r func]
@@ -56,47 +93,46 @@
 		    	(spit "clock-error.log" (str (now-str) "\n" response) :append true)
 		    	(throw je))))))
 
-(defn read-image
-    [fname]
-    (javax.imageio.ImageIO/read (java.io.File.
-        (str (when-not (clojure.string/includes? fname "/") (:image-dir @conf/config)) fname))))
-
 (defn abs
     [x]
     (if (< x 0)
       (- 0 x)
       x))
 
-; read a directory
+(defn half
+    [x]
+    (/ x 2))
+
+(defn neg
+  	[x]
+    (- 0 x))
+
 (defn get-dir-list
+  	"read a directory"
     [dir re]
     (filter #(re-find re %) (map str (file-seq (io/file dir)))))
-
-; get list of available background images
-(defn get-background-list
-    []
-    (get-dir-list (:image-dir @conf/config) #"background-\d+\.(png|jpg|jpeg)$"))
-
-; pick a random background
-(defn get-background-name
-    []
-    (let [backgrounds (get-background-list)
-          num-bg      (count backgrounds)]
-        (nth backgrounds (rand-int num-bg))))
 
 (defn byte-array-2-image
     [barray]
     (javax.imageio.ImageIO/read (ByteArrayInputStream. barray)))
 
-; calculate width of string (in pixels)
 (defn string-width
-  [^java.awt.Graphics2D g2d txt-style txt]
-  (.stringWidth (.getFontMetrics g2d (:font txt-style)) txt))
+  	"calculate width of string (in pixels)"
+  	[^java.awt.Graphics2D g2d txt-style txt]
+    (if (and (some? g2d) (some? txt-style) (some? txt) (some? (:font txt-style)))
+  		(.stringWidth (.getFontMetrics g2d (:font txt-style)) txt)
+    	(do
+       		(prn "string-width:" g2d txt-style txt)
+         	200)))
 
-; calculate height of string (in pixels)
 (defn string-height
+  	"calculate height of string (in pixels)"
     [^java.awt.Graphics2D g2d txt-style]
-    (.getHeight (.getFontMetrics g2d (:font txt-style))))
+    (if (and (some? g2d) (some? txt-style) (some? (:font txt-style)))
+  		(.getHeight (.getFontMetrics g2d (:font txt-style)))
+		(do
+       		(prn "string-height" g2d txt-style)
+         	200)))
 
 (defn get-screens
     []
@@ -109,60 +145,25 @@
                         :height (.height (bounds %)))
              sd)))
 
-(defn not-nil?
-    [params]
-    (not (nil? params)))
-
-(defn parse-int [s]
-    (Integer/parseInt s))
-
-(defn is-string?
-    [s]
-    (and (not-nil? s) (string? s) (> (count (str/trim s)) 0)))
-
 (defn is-pos-int-str?
     [s]
-    (and (is-string? s) (re-matches #"\d+" (str/trim s))))
+    (and (string? s) (re-matches #"\d+" (str/trim s))))
 
 (defn is-pos-int?
     [s]
     (and (int? s) (pos? s)))
 
-; the window size map
-(def lbl-map (atom nil))
-
-  ; print changed window sizes for logging
-(defn update-lbl-map
-  [m k v]
-  (swap! lbl-map (fn [x] (assoc m k v)))
-  (timbre/info (format "New size: %s width: %d height: %d" k (:width v) (:height v))))
-
-; keep track of window sizes for logging
-(defn lbl-info
-    [object ^java.awt.Graphics2D g2d]
-    (let [id     (sc/id-of object)
-          width  (.getWidth object)
-          height (.getHeight object)]
-        (if (nil? @lbl-map)
-            (update-lbl-map {} id {:width width :height height})
-            (if (contains? @lbl-map id)
-                (let [w (-> @lbl-map (get id) :width)
-                      h (-> @lbl-map (get id) :height)]
-                    (if (not (and (= w width) (= h height)))
-                        (update-lbl-map @lbl-map id {:width width :height height})))
-                (update-lbl-map @lbl-map id {:width width :height height})))))
-
-; convert hour to 0-360
 (defn hour-to-angle
+  	"convert hour to 0-360"
     [h]
     {:pre [(and (>= h 0) (< h 24))]}
     (* (/ (mod h 12) 12) 360))
 
-; map wind direction angle to text
 (defn wind-dir-to-str
+  	"map wind direction angle to text"
     [dir]
     {:pre  [(and (>= dir 0) (<= dir 360))]
-     :post [(is-string? %)]}
+     :post [(string? %)]}
     (let [between (fn [x [l h]] (and (>= x l) (< x h)))
           wd [[[  0.0  22.5] "N"]
               [[ 22.5  67.5] "NE"]
@@ -184,70 +185,9 @@
 (defn mk-date-strings
     []
     (map #(f/unparse (f/formatter "EEE dd/MM") (t/plus (l/local-now) (t/days %)))
-    	 (range (:graph-days @conf/config))))
+    	 (range (config :graph-days))))
 
 (defn day-of-week
 	[]
 	(dec (t/day-of-week (l/local-now))))
 
-(def clock-pics (atom nil))
-
-(def symbol-pics (atom nil))
-
-(def tiny-symbol-pics (atom nil))
-
-(defn setup-images
-    []
-    (reset! tiny-symbol-pics (into {} (map #(hash-map % (read-image (format "symbol-%02dAs.png" %))) (range 16))))
-    (reset! symbol-pics (into {} (map #(hash-map % (read-image (format "symbol-%02dA.png" %))) (range 1 16))))
-    (reset! clock-pics {:map-pic   (read-image "map3D.png")
-                        :hour-hand (read-image "clock-hour.png")
-                        :min-hand (read-image "clock-minute.png")
-                        :sec-hand (read-image "clock-second.png")
-                        :clock-pic (read-image "clock-rim.png")
-                        :compass-pic (read-image "compass.png")
-                        :arrow-pic (read-image "arrow.png")}))
-
-(defn rotate-file
-    [log path prefix num-files]
-    (let [dir     (get-dir-list path (re-pattern (str prefix "-\\d+\\.log")))
-          extract (fn [x] (str/replace x #"^([^-]+-)([0-9]+)(\.log)$" "$2"))
-          numbers (map extract dir)
-          biggest (->> numbers (map parse-int) sort last)
-          new-big (str path prefix "-" (if (nil? biggest) 0 (inc biggest)) ".log")]
-        (.renameTo log (io/file new-big))
-        (.createNewFile log)))
-
-(defn max-size-appender
-    "Returns a Rolling file appender. Opts:
-    :path      - logfile path.
-    :prefix    - first part of filename.
-    :max-size  - max size in bytes.
-    :num-files - max number of files."
-    [& [{:keys [path prefix max-size num-files]
-         :or   {path      "./"
-                prefix    "rolling"
-                max-size  1000000
-                num-files 10}}]]
-        {:enabled?   true
-         :async?     false
-         :min-level  nil
-         :rate-limit nil
-         :output-fn  :inherit
-         :fn
-            (fn [data]
-                (let [{:keys [instant output_]} data
-                      output-str (force output_)
-                      filename   (str path prefix ".log")]
-                    (when-let [log (io/file filename)]
-                        (try
-                            (when-not (.exists log)
-                                (io/make-parents log))
-                            (if (.exists log)
-                                (if (> (.length log) max-size)
-                                    (do
-                                        ;(println "length:" (.length log) "max:" max-size)
-                                    (rotate-file log path prefix num-files)))
-                                (.createNewFile log))
-                            (spit filename (with-out-str (println output-str)) :append true)
-                            (catch java.io.IOException _)))))})

@@ -1,94 +1,30 @@
 (ns smhi.sun
-  (:require [smhi.utils                 :as utils]
-            [smhi.spec                  :as spec]
-            [smhi.config                :as conf]
-            [clojure.data.json          :as json]
-            [clojure.java.io            :as io]
-            [clojure.spec               :as s]
-            [clj-time.core              :as t]
-            [clj-time.format            :as f]
-            [clj-time.local             :as l]
-            [seesaw.core                :as sc]
-            [seesaw.border              :as sb]
-            [seesaw.graphics            :as sg]
-            [seesaw.color               :as sclr]
-            [seesaw.font                :as sf]
-            [org.httpkit.client         :as http]
-            [taoensso.timbre            :as timbre]
-            [taoensso.timbre.appenders.core :as appenders])
-    (:import (javax.swing JFrame JLabel)
-             (java.awt Color Font FontMetrics GraphicsEnvironment)
-             (java.io ByteArrayInputStream)
-             (java.lang.Math)))
+  (:require (smhi 			[utils      :refer :all]
+            				[spec       :refer :all]
+            				[config     :refer [config]])
+            (clojure.data 	[json       :as json])
+            (clojure.java 	[io         :as io])
+            (clojure.spec 	[alpha      :as s])
+            (clj-time 		[core       :as t]
+            				[format     :as f]
+            				[local      :as l])
+            (seesaw 		[core       :as sc]
+            				[border     :as sb]
+            				[graphics 	:as sg]
+            				[color      :as sclr]
+            				[font       :as sf])
+            (org.httpkit 	[client     :as http])
+            (taoensso 		[timbre     :as log])))
 
-
-(defn jdn-2-date
-    [jdn]
-    (let [y 4716
-          j 1401
-          m 2
-          n 12
-          r 4
-          p 1461
-          v 3
-          u 5
-          s 153
-          w 2
-          B 274277
-          C -38
-          div (fn [a b] (int (/ a b)))
-          f (+ jdn j (div (* (div (+ (* jdn 4) B) 146097) 3) 4) C)
-          e (+ (* r f) v)
-          g (div (mod e p) r)
-          h (+ (* u g) w)
-          D (+ (div (mod h s) u) 1)
-          M (+ (mod (+ (div h s) m) n) 1)
-          Y (+ (div e p) (- 0 y) (div (+ n m (- 0 M)) n))]
-        {:year Y :month M :day D}))
-
-(defn sun-calc
-    [year month day longitude latitude]
-    (let [a (Math/floor (/ (- 14 month) 12))
-          y (- (+ year 4800) (a month))
-          m (+ month (* 12 (a month)) -3)
-          JDN (+ day
-                 (Math/floor (/ (+ (* 153 (m month)) 2)  5))
-                 (* 365 (y year month))
-                 (Math/floor (/ (y year month) 4))
-                 (- 0 (Math/floor (/ (y year month) 100)))
-                 (Math/floor (/ (y year month) 400))
-                 -32045)
-          n (+ (- (JDN year month day) 2451545.0) 0.0008)
-          j-star (- (n year month day) (/ longitude 360.0))
-          solar-mean (mod (+ (* j-star 0.98560028) 357.5291) 360)
-          eq-center (+ (* 1.9148 (Math/sin solar-mean))
-                       (* 0.0200 (Math/sin (* 2 solar-mean)))
-                       (* 0.0003 (Math/sin (* 3 solar-mean))))
-          eclip-long (mod (+ solar-mean eq-center 180 102.9372) 360.0)
-          solar-noon (+ 2451545.5 j-star (* 0.0053 (Math/sin solar-mean)) (- 0 (* 0.0069 (Math/sin (* 2 eclip-long)))))
-          sun-decl (Math/asin (* (Math/sin eclip-long) (Math/sin 23.44)))
-          hour-angle (Math/acos (/ (- (Math/sin -0.83)
-                             (* (Math/sin latitude)
-                                (Math/sin sun-decl)))
-                          (* (Math/cos latitude) 
-                             (Math/cos sun-decl))))
-          sunrise (+ solar-noon (/ hour-angle 360))
-          sunset (- (solar-noon year month day longitude) (/ hour-angle 360))
-          jdn-rise (sunrise year month day longitude latitude)
-          jdn-set (sunset year month day longitude latitude)
-          rise-h (* (- jdn-rise (int jdn-rise)) 24)
-          rise-m (* (- rise-h (int rise-h)) 60)
-          set-h (* (- jdn-set (int jdn-set)) 24)
-          set-m (* (- set-h (int set-h)) 60)
-        ]
-        {:rise-h (int rise-h) :rise-m (int rise-m) :set-h (int set-h) :set-m (int set-m)}))
+;;-----------------------------------------------------------------------------
 
 (def sun-info (atom nil))
 
+;;-----------------------------------------------------------------------------
+
 (defn pp-sun
     [sun f]
-    (let [to-txt (fn [x] (f/unparse (f/with-zone (f/formatter :hour-minute) (t/default-time-zone)) x))
-          t-str  (fn [x] (->> sun :results x f/parse to-txt))]
+    (let [t-str  (fn [x] (->> sun :results x f/parse hour-minute))]
         (f (str "astronomical_twilight_begin: " (t-str :astronomical_twilight_begin)))
         (f (str "nautical_twilight_begin:     " (t-str :nautical_twilight_begin)))
         (f (str "civil_twilight_begin:        " (t-str :civil_twilight_begin)))
@@ -101,29 +37,29 @@
         (f (str "astronomical_twilight_end:   " (t-str :astronomical_twilight_end)))
     ))
 
+;;-----------------------------------------------------------------------------
+
 (defn send-sun-request
 	[]
-	(timbre/info "getting new sun info")
+	(log/info "getting new sun info")
 	(try
-		(let [url (str "http://api.sunrise-sunset.org/json?lat=" (:latitude @conf/config)
-					   "&lng=" (:longitude @conf/config) "&formatted=0")
-			  response (utils/send-json-request url)]
-			(timbre/info "successfully got new sun info")
-			(if (= (s/conform spec/sunrise-spec response) :clojure.spec/invalid)
+		(let [url (str "http://api.sunrise-sunset.org/json?lat=" (config :latitude)
+					   "&lng=" (config :longitude) "&formatted=0")
+			  response (send-json-request url)]
+			(log/info "successfully got new sun info")
+			(if-not (s/valid? :sun/sunrise-spec response)
 	            (do
-	                (timbre/error "------- Invalid Sunrise data -----------")
-	                (timbre/error (s/explain-str spec/sunrise-spec response))
-	                (timbre/error "-------------------------------------")
+	                (log/error (str "\n------- Invalid Sunrise data -----------\n"
+	                				(s/explain-str :sun/sunrise-spec response) "\n"
+	                				"-------------------------------------"))
 	                nil)
-				(let [new-info (assoc response :timestamp (l/local-now))]
-;                    (pp-sun new-info println)
-                    new-info)))
+				(assoc response :timestamp (l/local-now))))
 		(catch Exception e
             (do
-                (timbre/error "---------------------------------------------------")
-                (timbre/error "Error in: send-sun-request")
-                (timbre/error (str "Exception: " (.getMessage e)))
-                (timbre/error "---------------------------------------------------")
+                (log/error (str "\n---------------------------------------------------\n"
+                				"Error in: send-sun-request\n"
+                				"Exception: " (.getMessage e) "\n"
+                				"---------------------------------------------------"))
                 nil))))
 
 (defn get-sun-info
@@ -132,62 +68,93 @@
 		(reset! sun-info (send-sun-request)))
 	@sun-info)
 
-(defn inprint-image
-	[image]
+(defn write-sun-info
+	[^java.awt.Graphics2D g2d width height]
 	(if-let [sun-info (get-sun-info)]
-		(let [g2d (.createGraphics image)
-			  to-txt (fn [x] (f/unparse (f/with-zone (f/formatter :hour-minute) (t/default-time-zone)) x))
-			  rise-txt (->> sun-info :results :sunrise f/parse to-txt)
-			  set-txt  (->> sun-info :results :sunset f/parse to-txt)
-			  week-txt (str "week: " (t/week-number-of-year (l/local-now)))
-              up-down-txt (format "↑ %s  ↓ %s" rise-txt set-txt)
-			  up-down-width (utils/string-width g2d conf/sun-style up-down-txt)
-              date-txt (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
-              date-width (utils/string-width g2d conf/sun-style date-txt)
-              week-width (utils/string-width g2d conf/sun-style week-txt)
-			  sq-width  400
-			  sq-height 60
-			  sq-radius 50]
+		(let [rise-txt      (->> sun-info :results :sunrise f/parse hour-minute)
+			  set-txt       (->> sun-info :results :sunset f/parse hour-minute)
+			  up-down-txt   (format "↑ %s  ↓ %s" rise-txt set-txt)
+     		  up-down-width (string-width g2d (config :sun-txt-style) up-down-txt)
+         	  up-down-x     (- (half width) (half up-down-width))
+			  week-txt      (str "week: " (t/week-number-of-year (l/local-now)))
+     		  week-width    (string-width g2d (config :sun-txt-style) week-txt)
+         	  week-x        (- (half width) (half week-width))
+              date-txt      (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
+              date-width    (string-width g2d (config :sun-txt-style) date-txt)
+              date-x        (- (half width) (half date-width))
+              text-height   (string-height g2d (config :sun-txt-style))
+              mid-y         (half height)]
 			(sg/draw g2d
-    			(sg/rounded-rect (- (:x conf/sun-point) (/ sq-width 2))
-            				  (- (:y conf/sun-point) 50)
-            				  sq-width
-            				  sq-height
-            				  sq-radius
-            				  sq-radius)
-    			conf/sun-bg-style)
+				(sg/rounded-rect (- up-down-x (half (config :sun-box-dw)))
+                  		  		 (- mid-y (config :up-down-dy) (config :sun-box-dy))
+                      	  		 (+ up-down-width (config :sun-box-dw))
+                  		  		 (+ text-height (config :sun-box-dh))
+                  		  		 (config :sun-box-radius)
+                          		 (config :sun-box-radius))
+				(config :sun-box-style))
 			(sg/draw g2d
-            	  (sg/string-shape (- (:x conf/sun-point) (/ up-down-width 2))
-                				(- (:y conf/sun-point) 8)
-                        		up-down-txt)
-            	  conf/sun-style)
+    	  		(sg/string-shape up-down-x
+                          		 (- mid-y (config :up-down-dy))
+                		   		 up-down-txt)
+    	  		(config :sun-txt-style))
+   
 			(sg/draw g2d
-    			(sg/rounded-rect (- (:x conf/date-point) (/ sq-width 2))
-            				  (- (:y conf/date-point) 50)
-            				  sq-width
-            				  sq-height
-            				  sq-radius
-            				  sq-radius)
-    			conf/sun-bg-style)
+				(sg/rounded-rect (- date-x (half (config :sun-box-dw)))
+                  		  		 (- mid-y (config :date-dy) (config :sun-box-dy))
+                      	  		 (+ date-width (config :sun-box-dw))
+                  		  		 (+ text-height (config :sun-box-dh))
+                  		  		 (config :sun-box-radius)
+                          		 (config :sun-box-radius))
+				(config :sun-box-style))
 			(sg/draw g2d
-            	  (sg/string-shape (- (:x conf/date-point) (/ date-width 2))
-                				(- (:y conf/date-point) 8)
-                        		date-txt)
-            	  conf/sun-style)
+    	  		(sg/string-shape date-x
+                          		 (- mid-y (config :date-dy))
+                		   		 date-txt)
+    	  		(config :sun-txt-style))
+   
 			(sg/draw g2d
-    			(sg/rounded-rect (- (:x conf/date-point) (/ 220 2))
-            				  	 (+ (:y conf/date-point) sq-height -50)
-            				  	 220
-            				  	 sq-height
-            				  	 sq-radius
-            				  	 sq-radius)
-    			conf/sun-bg-style)
+				(sg/rounded-rect (- week-x (half (config :sun-box-dw)))
+                  		  		 (- mid-y (config :week-dy) (config :sun-box-dy))
+                      	  		 (+ week-width (config :sun-box-dw))
+                  		  		 (+ text-height (config :sun-box-dh))
+                  		  		 (config :sun-box-radius)
+                          		 (config :sun-box-radius))
+				(config :sun-box-style))
 			(sg/draw g2d
-            	  (sg/string-shape (- (:x conf/date-point) (/ week-width 2))
-                				   (+ (:y conf/date-point) sq-height -8)
-                        		   week-txt)
-            	  conf/sun-style)
-			(.dispose g2d)))
-	image)
+    	  		(sg/string-shape week-x
+                          		 (- mid-y (config :week-dy))
+                		   		 week-txt)
+    	  		(config :sun-txt-style)))))
 
-;(clj-time.format/unparse (clj-time.format/formatter "EEE dd MMM") (clj-time.local/local-now))
+(defn draw-sunrise
+  	"draw axises for forecast graphics (and scales)"
+    [^java.awt.Graphics2D g2d width height]
+  	(when-let [info (get-sun-info)]
+        (let [sec->x               (fn [s] (* (/ width (* 24 60 60)) s))
+              dt->sec              (fn [x] (+ (* (t/hour x) 60 60) (* (t/minute x) 60) (t/second x)))
+              twilight-start-x     (-> info :results (get (config :twilight-begin)) f/parse dt->sec sec->x int)
+              sunrise-x            (-> info :results :sunrise f/parse dt->sec sec->x int)
+              sunset-x             (-> info :results :sunset f/parse dt->sec sec->x int)
+              twilight-end-x       (-> info :results (get (config :twilight-end)) f/parse dt->sec sec->x int)
+              twilight-start-width (- sunrise-x twilight-start-x)
+              twilight-end-width   (- twilight-end-x sunset-x)
+              mk-gradient          (fn [xs w l]
+              	(sg/style :background
+                    (sg/linear-gradient :start [xs 0]
+                                     	:end [(+ xs w) 0]
+                                     	:colors [(sclr/color 30 30 30 (if l 255 0))
+                                              	 (sclr/color 30 30 30 (if l 0 255))])))]
+            (sg/draw g2d
+                (sg/rect 0 0 twilight-start-x height)
+                (sg/style :background (sclr/color 30 30 30)))
+            (sg/draw g2d
+                (sg/rect twilight-start-x 0 twilight-start-width height)
+                (mk-gradient twilight-start-x twilight-start-width true))
+            (sg/draw g2d
+                (sg/rect sunset-x 0 twilight-end-width height)
+                (mk-gradient sunset-x twilight-end-width false))
+            (sg/draw g2d
+                (sg/rect twilight-end-x 0 (- width twilight-end-x) height)
+                (sg/style :background (sclr/color 30 30 30))))))
+
+;;-----------------------------------------------------------------------------

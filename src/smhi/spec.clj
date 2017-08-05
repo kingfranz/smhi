@@ -1,93 +1,43 @@
 (ns smhi.spec
-    (:require [smhi.utils       :as utils]
-              [clojure.spec     :as s]
-              [clj-time.core    :as t]
-              [clj-time.format  :as f]
-              [clj-time.local   :as l]))
+    (:require 	(clojure.spec 	[alpha   :as s])
+              	(clj-time 		[core    :as t]
+              					[format  :as f]
+              					[local   :as l])))
 
-(s/def ::approvedTime  f/parse)
-(s/def ::referenceTime f/parse)
-(s/def ::type          (s/and #(string? %) #(= % "Point")))
-(s/def ::coordinates   (s/and #(= (count %) 1)
-                        #(= (count (first %)) 2)
-                        #(-> % first first double?)
-                        #(-> % first second double?)))
-(s/def ::geometry      (s/keys :req-un [::type ::coordinates]))
-(s/def ::validTime     f/parse)
-(s/def :hl/levelType   (s/and string? #(= % "hl")))
-(s/def :hmsl/levelType (s/and string? #(= % "hmsl")))
-(s/def :dec/values     (s/and #(= (count %) 1) #(-> % first number?)))
-(s/def :int/values     (s/and #(= (count %) 1) #(-> % first int?)))
-(s/def :octas/values   (s/and #(= (count %) 1) #(-> % first int?) #(>= (first %) 0) #(<= (first %) 8)))
-(s/def :press/values   (s/and #(= (count %) 1) #(-> % first number?) #(>= (first %) 500) #(<= (first %) 1500)))
-(s/def :temp/values    (s/and #(= (count %) 1) #(-> % first number?) #(>= (first %) -60) #(<= (first %) 60)))
-(s/def :vis/values     (s/and #(= (count %) 1) #(-> % first number?) #(>= (first %) 0) #(<= (first %) 1000)))
-(s/def :degree/values  (s/and #(= (count %) 1) #(-> % first int?) #(>= (first %) 0) #(<= (first %) 360)))
-(s/def :percentd/values (s/and #(= (count %) 1) #(-> % first number?) #(>= (first %) 0) #(<= (first %) 102)))
-(s/def :percenti/values (s/and #(= (count %) 1) #(-> % first int?) #(>= (first %) 0) #(<= (first %) 102)))
-(s/def :percento/values (s/or :per :percenti/values :nine (s/and #(= (count %) 1) #(-> % first int?) #(= (first %) -9))))
-(s/def :precat/values   (s/and #(= (count %) 1) #(-> % first int?) #(>= (first %) 0) #(<= (first %) 6)))
-(s/def :symb/values     (s/and #(= (count %) 1) #(-> % first int?) #(>= (first %) 1) #(<= (first %) 15)))
+;;---------------------------------------------------------------------------------
 
-(s/def :lvl-zero/level (s/and int? #(= % 0)))
-(s/def :lvl-two/level  (s/and int? #(= % 2)))
-(s/def :lvl-ten/level  (s/and int? #(= % 10)))
+(s/def :smhi/approvedTime   f/parse)
+(s/def :smhi/referenceTime  f/parse)
+(s/def :smhi/type           #(= % "Point"))
+(s/def :smhi/coordinates    #(and (= (count %) 1)
+                        		  (= (count (first %)) 2)
+                        		  (-> % first first double?)
+                        		  (-> % first second double?)))
+(s/def :smhi/geometry      (s/keys :req-un [:smhi/type :smhi/coordinates]))
+(s/def :smhi/timeSeries    (s/+ (s/keys :req-un [:smhi/validTime :smhi/parameters])))
+(s/def :smhi/validTime     f/parse)
 
-(s/def :msl/name (s/and #(string? %) #(= % "msl")))
-(s/def :msl/unit (s/and #(string? %) #(= % "hPa")))
-(s/def :msl/params (s/keys :req-un [:msl/name :hmsl/levelType :lvl-zero/level :msl/unit :press/values]))
+(s/def :smhi/parameters    (s/+ :smhi/param-entry))
+(s/def :smhi/param-entry   (s/keys :req-un [:smhi/name
+                                            :smhi/levelType
+                                            :smhi/level
+                                            :smhi/unit
+                                            :smhi/values]))
 
-(defmacro nup
-  [pns punit plvl ptype]
-  `(do
-    (s/def ~(keyword (str pns) "name")   (s/and #(string? %) #(= % (str '~pns))))
-    (s/def ~(keyword (str pns) "unit")   (s/and #(string? %) #(= % ~punit)))
-    (s/def ~(keyword (str pns) "params") (s/keys :req-un [~(keyword (str pns) "name")
-                                                          :hl/levelType
-                                                          ~(keyword (str plvl) "level")
-                                                          ~(keyword (str pns) "unit")
-                                                          ~(keyword (str ptype) "values")]))))
+(s/def :smhi/name          #(some #{%} #{"msl" "t" "vis" "wd" "ws"
+                                         "r" "tstm" "tcc_mean" "lcc_mean"
+                                         "mcc_mean" "hcc_mean" "gust" "pmin"
+                                         "pmax" "spp" "pcat" "pmean" "pmedian" "Wsymb"}))
+(s/def :smhi/levelType     #(some #{%} #{"hmsl" "hl"}))
+(s/def :smhi/level         #(some #{%} #{0 2 10}))
+(s/def :smhi/unit          #(some #{%} #{"Cel" "km" "degree" "m/s" "hPa"
+                                         "percent" "octas" "kg/m2/h" "category"}))
+(s/def :smhi/values        (s/and vector? #(= (count %) 1) #(number? (first %))))
 
-(nup t        "Cel"      lvl-two  temp)
-(nup vis      "km"       lvl-two  vis)
-(nup wd       "degree"   lvl-ten  degree)
-(nup ws       "m/s"      lvl-ten  percentd)
-(nup r        "percent"  lvl-two  percenti)
-(nup tstm     "percent"  lvl-zero percenti)
-(nup tcc_mean "octas"    lvl-zero octas)
-(nup lcc_mean "octas"    lvl-zero octas)
-(nup mcc_mean "octas"    lvl-zero octas)
-(nup hcc_mean "octas"    lvl-zero octas)
-(nup gust     "m/s"      lvl-ten  percentd)
-(nup pmin     "kg/m2/h"  lvl-zero percentd)
-(nup pmax     "kg/m2/h"  lvl-zero percentd)
-(nup spp      "percent"  lvl-zero percento)
-(nup pcat     "category" lvl-zero precat)
-(nup pmean    "kg/m2/h"  lvl-zero percentd)
-(nup pmedian  "kg/m2/h"  lvl-zero percentd)
-(nup Wsymb    "category" lvl-zero symb)
-
-(s/def ::parameters (s/cat  :mslp      :msl/params
-                     :tp        :t/params
-                     :visp      :vis/params
-                     :wdp       :wd/params
-                     :wsp       :ws/params
-                     :rp        :r/params
-                     :tstmp     :tstm/params
-                     :tcc_meanp :tcc_mean/params
-                     :lcc_meanp :lcc_mean/params
-                     :mcc_meanp :mcc_mean/params
-                     :hcc_meanp :hcc_mean/params
-                     :gustp     :gust/params
-                     :pminp     :pmin/params
-                     :pmaxp     :pmax/params
-                     :sppp      :spp/params
-                     :pcatp     :pcat/params
-                     :pmeanp    :pmean/params
-                     :pmedianp  :pmedian/params
-                     :Wsymbp    :Wsymb/params))
-(s/def ::timeSeries (s/+ (s/keys :req-un [::validTime ::parameters])))
-(def smhi-spec (s/keys :req-un [::approvedTime ::referenceTime ::geometry ::timeSeries]))
+(s/def :smhi/smhi-spec     (s/keys :req-un [:smhi/approvedTime
+                                            :smhi/referenceTime
+                                            :smhi/geometry
+                                            :smhi/timeSeries]))
 
 ;;---------------------------------------------------------------------------------
 
@@ -95,16 +45,16 @@
 	{
 		:results
 		{
-			:sunrise "2015-05-21T05:05:35+00:00"
-			:sunset "2015-05-21T19:22:59+00:00"
-			:solar_noon "2015-05-21T12:14:17+00:00"
-			:day_length 51444
-			:civil_twilight_begin "2015-05-21T04:36:17+00:00"
-			:civil_twilight_end "2015-05-21T19:52:17+00:00"
-			:nautical_twilight_begin "2015-05-21T04:00:13+00:00"
-			:nautical_twilight_end "2015-05-21T20:28:21+00:00"
+			:sunrise                     "2015-05-21T05:05:35+00:00"
+			:sunset                      "2015-05-21T19:22:59+00:00"
+			:solar_noon                  "2015-05-21T12:14:17+00:00"
+			:day_length                  51444
+			:civil_twilight_begin        "2015-05-21T04:36:17+00:00"
+			:civil_twilight_end          "2015-05-21T19:52:17+00:00"
+			:nautical_twilight_begin     "2015-05-21T04:00:13+00:00"
+			:nautical_twilight_end       "2015-05-21T20:28:21+00:00"
 			:astronomical_twilight_begin "2015-05-21T03:20:49+00:00"
-			:astronomical_twilight_end "2015-05-21T21:07:45+00:00"
+			:astronomical_twilight_end   "2015-05-21T21:07:45+00:00"
 		}
 		:status "OK"
 	})
@@ -113,7 +63,7 @@
 (s/def :sun/sunrise                     f/parse)
 (s/def :sun/sunset                      f/parse)
 (s/def :sun/solar_noon                  f/parse)
-(s/def :sun/day_length                  utils/is-pos-int?)
+(s/def :sun/day_length                  (s/and integer? pos?))
 (s/def :sun/civil_twilight_begin        f/parse)
 (s/def :sun/civil_twilight_end          f/parse)
 (s/def :sun/nautical_twilight_begin     f/parse)
@@ -131,4 +81,4 @@
 									 :sun/astronomical_twilight_begin
 									 :sun/astronomical_twilight_end]))
 
-(def sunrise-spec (s/keys :req-un [:sun/results :sun/status]))
+(s/def :sun/sunrise-spec (s/keys :req-un [:sun/results :sun/status]))

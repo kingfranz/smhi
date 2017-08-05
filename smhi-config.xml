@@ -22,7 +22,6 @@
 	</radar-image>
 	<graph>
 		<max-rain-level>3</max-rain-level>
-		<graph-days>7</graph-days>
 		<temp-range>
 			<min>-20</min>
 			<max>30</max>
