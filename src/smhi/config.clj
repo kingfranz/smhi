@@ -10,6 +10,8 @@
 
 ;;-----------------------------------------------------------------------------
 
+(def config-name "smhi-config.edn")
+
 (def units
   	{:msl      {:str "Air Pressure"            :is-int true  :keep true  :unit "hPa"}
 	 :t        {:str "Temperature"             :is-int true  :keep true  :unit "C"}
@@ -68,7 +70,6 @@
 	:cloud-style               (sg/style :foreground :green :background :lightgreen :stroke 8)
 	:axis-style                (sg/style :foreground :white :background :white :stroke 2)
 	:day-tick-style            (sg/style :foreground :white :background :white :stroke 1)
-	:axis-txt-font             "ARIAL-BOLD-20"
 	:temp-axis-text-style      (sg/style :foreground :red :background :red :stroke 1 :font "ARIAL-BOLD-20")
 	:wind-axis-text-style      (sg/style :foreground :grey :background :grey :stroke 1 :font "ARIAL-BOLD-20")
 	:rain-axis-text-style      (sg/style :foreground :blue :background :blue :stroke 1 :font "ARIAL-BOLD-20")
@@ -77,11 +78,13 @@
 	:min-fixed-temp            -20
 	:max-fixed-temp            30
 	:image-dir                 "resources/"
+ 
 	:latitude                  "58.786869"
 	:longitude                 "14.265020"
 	:weather-url               "http://opendata-download-metfcst.smhi.se"
 	:category                  "pmp2g"
 	:version                   "2"
+ 
 	:widget-style              (sclr/color 32 32 32 0)
 	:degree-char               "\u00b0"
 	:max-rain-level            3
@@ -257,8 +260,8 @@
 
 (defn read-config-file
 	[]
- 	(spit "smhi-config.dat" (with-out-str (prn (convert-config default-config))))
-	(some->> "smhi-config.dat"
+ 	;(spit config-name (with-out-str (prn (convert-config default-config))))
+	(some->> config-name
              slurp
              (edn/read-string {:readers {'smhi.config.SMHIStyle create-style
                                          'smhi.config.SMHIColor create-color

@@ -155,7 +155,7 @@
 	            (reset! weather-exception nil)
 	            (reset! weather-timer-ts (l/local-now))
 	            (log/info "weather-timer-fn: done!")
-             	(spit "forecast-post.edn" (with-out-str (pp/pprint @weather-data)))
+             	;(spit "forecast-post.edn" (with-out-str (pp/pprint @weather-data)))
              	:new)
          	:old)
         (catch Exception e
