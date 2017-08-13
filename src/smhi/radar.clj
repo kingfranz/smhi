@@ -60,7 +60,8 @@
                              (- (config :radar-txt-y) time-height)
                              time-txt)
             (config :radar-txt-style))
-        buffer))
+        ;buffer
+        map-pic))
 
 (defn have-radar-data
     []

@@ -47,12 +47,6 @@
 ;    (log/info "after watch"))
 )
 
-(defn maybe
-  	[g2d func width height opt]
-    (if (nil? opt)
-		(func g2d width height)
- 		(func g2d width height opt)))
-
 (defn inprint
   	[g2d tag func & opt]
    	(let [widget (sc/select (smhi-frame) [tag])

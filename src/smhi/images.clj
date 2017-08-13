@@ -16,6 +16,9 @@
               					[color    :as sclr]
               					[font     :as sf])
               	(org.httpkit 	[client   :as http])
+                (image-resizer  [resize   :refer :all]
+                                [core     :refer :all]
+                                [scale-methods :refer :all])
               	(taoensso 		[timbre   :as log])))
 
 ;;-----------------------------------------------------------------------------
@@ -39,7 +42,8 @@
 (defn write-image
     [fname image]
     ;(log/info "enter: read-image")
-    (javax.imageio.ImageIO/write image "png" (java.io.File. fname)))
+    (javax.imageio.ImageIO/write image "png" (java.io.File. fname))
+    image)
 
 (defn get-background-list
   	"get list of available background images"
@@ -55,6 +59,48 @@
           num-bg      (count backgrounds)]
         (nth backgrounds (rand-int num-bg))))
 
+(defn longitude->x
+  	[l]
+   	(+ (* l (config :master-map-kx)) (config :master-map-mx)))
+
+(defn x->longitude
+  	[x]
+   	(/ (- x (config :master-map-mx)) (config :master-map-kx)))
+
+(defn latitude->y
+  	[l]
+   	(+ (* l (config :master-map-ky)) (config :master-map-my)))
+
+(defn y->latitude
+  	[y]
+   	(/ (- y (config :master-map-my)) (config :master-map-ky)))
+
+(defn mk-map
+  	[]
+   	(let [fname (str (config :image-dir)
+                     "map-" (config :longitude) "-" (config :latitude)
+                     "-" (config :radar-width) "-" (config :radar-height) ".png")]
+      	(if (.exists (io/as-file fname))
+         	(read-image fname)
+          	(let [master    	  (read-image (config :master-map))
+                  width-longitude (config :radar-width-long)
+                  calc-latitude   (- 90.0 (config :latitude))
+                  ulx       	  (longitude->x (- (config :longitude) (/ width-longitude 2)))
+                  lrx       	  (longitude->x (+ (config :longitude) (/ width-longitude 2)))
+                  sub-width 	  (- lrx ulx)
+                  h-w-ratio 	  (/ (config :radar-height) (config :radar-width))
+                  sub-height 	  (* sub-width h-w-ratio)
+                  center-y    	  (latitude->y  calc-latitude)
+                  uly             (- center-y (/ sub-height 2))
+                  lry       	  (+ center-y (/ sub-height 2))]
+             	(if (and (>= ulx 0) (>= uly 0) (> lrx ulx) (> lry uly)
+                 		   (< lrx (.getWidth master)) (< lry (.getHeight master)))
+                	(as-> master $
+                  		  (.getSubimage $ ulx uly sub-width sub-height)
+          		  		  (resize-to-width $ (config :radar-width))
+      			  		  (write-image fname $))
+                 	(sg/buffered-image (config :radar-width) (config :radar-height)))))))
+
 (defn setup-images
     []
     (log/info "enter: setup-images")
@@ -64,13 +110,14 @@
     (reset! symbol-pics* (into {} (map (fn [i]
                           {i (read-image (format "symbol-%02dA.png" i))})
                           (range 1 16))))
-    (reset! clock-pics* {:map-pic     (read-image "map3D.png")
-                        :hour-hand   (read-image "clock-hour.png")
-                        :min-hand    (read-image "clock-minute.png")
-                        :sec-hand    (read-image "clock-second.png")
-                        :clock-pic   (read-image "clock-rim.png")
-                        :compass-pic (read-image "compass.png")
-                        :arrow-pic   (read-image "arrow.png")}))
+    (reset! clock-pics* {
+        :map-pic     (mk-map)
+        :hour-hand   (read-image "clock-hour.png")
+        :min-hand    (read-image "clock-minute.png")
+        :sec-hand    (read-image "clock-second.png")
+        :clock-pic   (read-image "clock-rim.png")
+        :compass-pic (read-image "compass.png")
+        :arrow-pic   (read-image "arrow.png")}))
 
 (defn clock-pics
   	[k]
