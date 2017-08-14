@@ -79,11 +79,7 @@
 	:min-fixed-temp             -20
 	:max-fixed-temp             30
 	:image-dir                  "resources/"
- 	:master-map				    "resources/master-map.jpg"
-  	:master-map-kx			    650
-  	:master-map-mx			    -7150
-  	:master-map-ky			    500
-  	:master-map-my			    -4000
+ 	:master-map				    {:filename "master-map.jpg" :center-x 2187 :center-y 11615 :width 2100}
   
 	:latitude                   58.786869
 	:longitude                  14.265020

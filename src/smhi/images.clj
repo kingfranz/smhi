@@ -77,26 +77,19 @@
 
 (defn mk-map
   	[]
-   	(let [fname (str (config :image-dir)
-                     "map-" (config :longitude) "-" (config :latitude)
-                     "-" (config :radar-width) "-" (config :radar-height) ".png")]
+   	(let [mmap (config :master-map)
+          fname (str (config :image-dir)
+                     "map-" (:center-x mmap) "-" (:center-y mmap) "-" (:width mmap) ".png")]
       	(if (.exists (io/as-file fname))
          	(read-image fname)
-          	(let [master    	  (read-image (config :master-map))
-                  width-longitude (config :radar-width-long)
-                  calc-latitude   (- 90.0 (config :latitude))
-                  ulx       	  (longitude->x (- (config :longitude) (/ width-longitude 2)))
-                  lrx       	  (longitude->x (+ (config :longitude) (/ width-longitude 2)))
-                  sub-width 	  (- lrx ulx)
-                  h-w-ratio 	  (/ (config :radar-height) (config :radar-width))
-                  sub-height 	  (* sub-width h-w-ratio)
-                  center-y    	  (latitude->y  calc-latitude)
-                  uly             (- center-y (/ sub-height 2))
-                  lry       	  (+ center-y (/ sub-height 2))]
-             	(if (and (>= ulx 0) (>= uly 0) (> lrx ulx) (> lry uly)
-                 		   (< lrx (.getWidth master)) (< lry (.getHeight master)))
+          	(let [master (read-image (str (config :image-dir) (:filename mmap)))
+                  height (/ (:width mmap) (/ (config :radar-width) (config :radar-height)))
+                  ulx    (- (:center-x mmap) (/ (:width mmap) 2))
+                  uly    (- (:center-y mmap) (/ height 2))]
+             	(if (and (>= ulx 0) (>= uly 0)
+                 		 (< (+ ulx (:width mmap)) (.getWidth master)) (< (+ uly height) (.getHeight master)))
                 	(as-> master $
-                  		  (.getSubimage $ ulx uly sub-width sub-height)
+                  		  (.getSubimage $ ulx uly (:width mmap) height)
           		  		  (resize-to-width $ (config :radar-width))
       			  		  (write-image fname $))
                  	(sg/buffered-image (config :radar-width) (config :radar-height)))))))
