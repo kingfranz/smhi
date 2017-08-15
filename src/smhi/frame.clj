@@ -28,7 +28,7 @@
     []
     (sc/window
         :width (config :horiz-res)
-        :height (config :vert-rez)
+        :height (config :vert-res)
         :content
         (sc/xyz-panel :items (concat [
             ;----------------------------------------------
@@ -162,7 +162,7 @@
                        :bounds     [0
                                     0
                                     (config :horiz-res)
-                                    (config :vert-rez)]
+                                    (config :vert-res)]
                        :paint      draw-background)
         	]
             ;----------------------------------------------

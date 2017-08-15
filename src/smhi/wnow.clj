@@ -2,7 +2,7 @@
     (:require 	(smhi 			[utils         :refer :all]
               					[graph-utils   :refer :all]
                    				[weather       :refer [weather-data]]
-                       			[images        :refer [clock-pics symbol-pics]]
+                       			[images        :refer :all]
               					[config        :refer [config]]
               					[date          :as date]
               					[sun           :as sun])
@@ -123,9 +123,9 @@
   	[^java.awt.Graphics2D g2d width height]
   	(log/trace "draw-wnow-symbol")
 	(let [direction      (if (some? @weather-data) (v-frmt :wd) 0)
-          rotated-arrow  (center-rotate (clock-pics :arrow-pic) (mod (+ direction 180) 360))]
- 		(draw-image g2d width height (clock-pics :compass-pic) :min :center :center "compass")
- 		(draw-image g2d width height rotated-arrow :min :center :center "arrow")))
+          rotated-arrow  (center-rotate (get-pic :arrow-pic) (mod (+ direction 180) 360))]
+ 		(draw-image g2d (get-pic :compass-pic))
+ 		(draw-image g2d rotated-arrow)))
 
 (defn draw-wnow-baro
   	"draw all the parts of the now info"
@@ -160,6 +160,6 @@
   	[^java.awt.Graphics2D g2d width height]
   	(log/trace "draw-wnow-direction-symb")
 	(try (let [value (if (some? @weather-data) (v-frmt :Wsymb) 1)]
-		(draw-image g2d width height (symbol-pics (int value)) :min :center :center "symbol"))
+		(draw-image g2d (get-symbol (int value))))
    		(catch Exception e (prn "DNDS" (some? @weather-data) (v-frmt :Wsymb)))))
     	

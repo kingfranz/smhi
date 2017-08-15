@@ -28,18 +28,13 @@
 	[widget ^java.awt.Graphics2D g2d]
 	;(log/trace "draw-clock")
     (try
-		(let [width        (.getWidth widget)
-        	  height       (.getHeight widget)
-        	  now          (l/local-now)
-	    	  sec          (t/second now)
-	    	  minute       (+ (t/minute now) (/ sec 60.0))
-	    	  hour         (+ (t/hour now) (/ minute 60.0))
-	    	  rotated-hour (center-rotate (clock-pics :hour-hand) (utils/hour-to-angle hour))
-	    	  rotated-min  (center-rotate (clock-pics :min-hand) (* minute 6))
-	    	  rotated-sec  (center-rotate (clock-pics :sec-hand) (* sec 6))]
-	    	(draw-image g2d width height rotated-hour :min :center :center "hour")
-	    	(draw-image g2d width height rotated-min  :min :center :center "minute")
-	    	(draw-image g2d width height rotated-sec  :min :center :center "second"))
+		(let [now    (l/local-now)
+	    	  sec    (t/second now)
+	    	  minute (+ (t/minute now) (/ sec 60.0))
+	    	  hour   (+ (t/hour now) (/ minute 60.0))]
+	    	(draw-image g2d (get-hourhand (int hour)))
+	    	(draw-image g2d (get-minutehand (int minute)))
+	    	(draw-image g2d (get-secondhand (int sec))))
 	    (catch Exception e
 	    	(log/error e))))
 
@@ -68,8 +63,8 @@
     [widget ^java.awt.Graphics2D g2d]
   	;(log/trace "draw-background")
     (try
-        (when (some? @landscape-pic)
-            (draw-image g2d (.getWidth widget) (.getHeight widget) @landscape-pic :both :center :center "background"))
+        (when (some? background)
+            (draw-image g2d background))
         (catch Exception e
             (log/error e))))
 

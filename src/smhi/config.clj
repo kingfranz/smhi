@@ -35,8 +35,8 @@
 
 ;;-----------------------------------------------------------------------------
 
-(def ^:private horizontal-resolution 1920)
-(def ^:private vertical-resolution   1080)
+(def ^:private horizontal-resolution (* 1920 2/3))
+(def ^:private vertical-resolution   (* 1080 2/3))
 
 (def ^:private default-config
 	{
@@ -107,7 +107,7 @@
     :symbols-per-day            3
      
 	:horiz-res                  horizontal-resolution
-	:vert-rez                   vertical-resolution
+	:vert-res                   vertical-resolution
 	:graphics-height            (* vertical-resolution 1/3)
 	:graphics-width             horizontal-resolution
 	:info-height                (- (- vertical-resolution (* vertical-resolution 1/3)) (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3))

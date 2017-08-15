@@ -1,7 +1,6 @@
 (ns smhi.graph-utils
     (:require 	(smhi 			[utils         :refer :all]
-            					[config        :refer [config]]
-                 				[images        :as images])
+            					[config        :refer [config]])
               	(clj-time 		[core          :as t]
             					[format        :as f]
             					[local         :as l])
@@ -12,9 +11,25 @@
             					[graphics      :as sg]
             					[color         :as sclr]
             					[font          :as sf])
-            	(taoensso 		[timbre        :as log])))
+            	(image-resizer  [resize        :refer :all]
+                                [core          :refer :all]
+                                [crop          :refer :all]
+                                [scale-methods :refer :all])
+              	(taoensso 		[timbre        :as log])))
 
 ;;-----------------------------------------------------------------------------
+
+(defn read-image
+    [fname]
+    ;(log/info "enter: read-image")
+    (javax.imageio.ImageIO/read (java.io.File.
+        (str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname))))
+
+(defn write-image
+    [fname image]
+    ;(log/info "enter: read-image")
+    (javax.imageio.ImageIO/write image "png" (java.io.File. fname))
+    image)
 
 (defn fill
   	"fill a graphics context with color"
@@ -55,40 +70,45 @@
 
 ;;-----------------------------------------------------------------------------
 
+(defn scale-image
+    "scale and crop an image"
+    [target-width target-height image]
+    (let [src-width     (.getWidth image)
+          src-height    (.getHeight image)
+          src-ratio     (/ src-width src-height)
+          target-ratio  (/ target-width target-height)
+          crop-func     (cond
+                          	(= src-ratio target-ratio)
+                           		(fn [x] x)
+                           	(> src-ratio target-ratio)
+                            	(crop-fn (/ (* src-height target-ratio) 2)
+                                      	 0
+                                         (* src-height target-ratio)
+                                         src-height)
+                            :else
+                            	(crop-fn 0
+                                         (/ (/ src-width target-ratio) 2)
+                                         src-width
+                                      	 (/ src-width target-ratio)))
+          new-img       (->> image
+              				 (crop-func)
+              				 ((resize-fn target-width target-height ultra-quality)))
+          ]
+        ;(write-image (str "img-" (rand-int 100) ".png") new-img)
+;      	(println "TW" (int target-width) "TH" (int target-height)
+;                 "SW" (int src-width) "SH" (int src-height)
+;                 "CX" (int crop-ulx) "CY" (int crop-uly)
+;                 "CW" (int crop-width) "CH" (int crop-height)
+;                 (.getWidth new-img) (.getHeight new-img))
+        new-img))
+
+;;-----------------------------------------------------------------------------
+
 (defn draw-image
-    "draw a (possibly scaled) image within a widget"
-    [^java.awt.Graphics2D g2d width height image match valign halign iname]
-    {:pre [(some #{match}  '(:both :width :height :min :max))
-           (some #{valign} '(:top :center :bottom))
-           (some #{halign} '(:left :center :right))]}
-    (let [image-width     (.getWidth image)
-          image-height    (.getHeight image)
-          width-scale-1   (/ width image-width)
-          height-scale-1  (/ height image-height)
-          width-scale-2   (cond
-				            (= match :both)   width-scale-1
-				            (= match :width)  width-scale-1
-				            (= match :height) 1.0
-				            (= match :min)    (min width-scale-1 height-scale-1)
-				            (= match :max)    (max width-scale-1 height-scale-1))
-          height-scale-2  (cond
-				            (= match :both)   height-scale-1
-				            (= match :width)  1.0
-				            (= match :height) height-scale-1
-				            (= match :min)    (min width-scale-1 height-scale-1)
-				            (= match :max)    (max width-scale-1 height-scale-1))
-        new-width       (* image-width width-scale-2)
-        new-height      (* image-height height-scale-2)
-        width-offset    (cond
-				            (= halign :left)   0
-				            (= halign :center) (/ (- width new-width) 2)
-				            (= halign :right)  (- width new-width))
-        height-offset   (cond
-				            (= valign :top)    0
-				            (= valign :center) (/ (- height new-height) 2)
-				            (= valign :bottom) (- height new-height))]
-        (sg/push g2d
-            (sg/draw (sg/scale g2d width-scale-2 height-scale-2)
-                (sg/image-shape (/ width-offset width-scale-2) (/ height-offset height-scale-2) image)
-                nil))))
+    "draw a image within a widget"
+    [^java.awt.Graphics2D g2d image]
+    ;(println "draw-image" (.getWidth image) (.getHeight image))
+    (as-> image $
+          (sg/image-shape 0 0 $)
+          (sg/draw g2d $ nil)))
 

@@ -59,6 +59,17 @@
                        (sg/translate $ left-x top-y)
                        (apply func $ width height opt)))))
 
+(defn inprint-img
+  	[g2d tag img]
+   	(let [widget (sc/select (smhi-frame) [tag])
+          left-x (.getX widget)
+          top-y  (.getY widget)]
+      	(println "WW" (.getWidth widget) "WH" (.getHeight widget) "WX" (.getX widget) "WY" (.getY widget))
+      	(sg/push g2d
+                 (as-> g2d $
+                       (sg/translate $ left-x top-y)
+                       (draw-image $ img)))))
+
 (defn -main
     [& args]
     ;(sd/debug!)
@@ -81,25 +92,16 @@
         :initial-delay (* 1000 (config :radar-ani-delay-sec))
         :delay (/ 1000 (config :radar-fps)))
 
-    ; set timer for weather forecast
-;    (st/timer  (fn [_]
-;      	(let [widget (sc/select (smhi-frame) [:#forecast])
-;          	  width  (.getWidth widget)
-;          	  height (.getHeight widget)]
-;             (weather-update width height)))
-;        :initial-delay (* 1000 (config :weather-timer-initial-sec))
-;        :delay (* 60 1000 (config :weather-timer-delay-min)))
-
     ; set timer for radar image download
     (st/timer (fn [_]
         (radar-timer-fn)
         (let [widget (sc/select (smhi-frame) [:#forecast])
           	  width  (.getWidth widget)
           	  height (.getHeight widget)
-              bkgrnd (get-background)
+              bkgrnd (load-background)
               bg-g2d (.createGraphics bkgrnd)]
             (weather-update width height)
-          	(inprint bg-g2d :#clock 			  draw-image (clock-pics :clock-pic) :min :center :center "clock")
+          	(inprint-img bg-g2d :#clock (get-pic :clock-pic))
             (inprint bg-g2d :#clock 			  write-sun-info)
             (inprint bg-g2d :#left-axis 		  draw-left-axis)
             (inprint bg-g2d :#right-axis 		  draw-right-axis)
@@ -116,7 +118,7 @@
             (inprint bg-g2d :#wnow-thunder 		  draw-wnow-thunder)
             (inprint bg-g2d :#wnow-direction-txt  draw-wnow-direction-txt)
             (inprint bg-g2d :#wnow-direction-symb draw-wnow-direction-symb)
-            ;(write-image "test.png" bkgrnd)
+            (write-image "test.png" bkgrnd)
             (set-background bkgrnd)
             (sc/repaint! (sc/select (smhi-frame) [:#lbl-back]))))
         :initial-delay (* 1000 (config :radar-timer-initial-sec))

@@ -2,7 +2,7 @@
     (:require 	(smhi 			[utils         :as utils]
               					[graph-utils   :as gutils]
                    				[draw          :refer :all]
-                   				[images        :refer [clock-pics set-background]]
+                   				[images        :refer :all]
               					[config        :refer :all])
               	(clojure.spec 	[alpha         :as s])
             	(clj-time 		[core          :as t]
@@ -32,7 +32,7 @@
 
 (defn mk-radar-image
     [radar-pic]
-    (let [map-pic      (clock-pics :map-pic)
+    (let [map-pic      (get-pic :map-pic)
           map-width    (.getWidth map-pic)
           map-height   (.getHeight map-pic)
           sub-radar    (.getSubimage radar-pic

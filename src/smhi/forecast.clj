@@ -202,9 +202,9 @@
   	(when (some? @weather-data)
     	(doseq [st (find-closest width @weather-data)]
        		(sg/draw g2d
-                  	 (sg/image-shape (- (:target st) (/ (.getWidth (tiny-symbol-pics 0)) 2))
+                  	 (sg/image-shape (- (:target st) (/ (.getWidth (get-tiny-symbol 0)) 2))
                                      0
-                                     (tiny-symbol-pics (:value st)))
+                                     (get-tiny-symbol (:value st)))
                      nil))))
 
 ;;-----------------------------------------------------------------------------
