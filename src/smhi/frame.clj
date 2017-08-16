@@ -99,7 +99,7 @@
             ;----------------------------------------------
             (sc/label  :id         :radar
                        :bounds     [0
-                                    (config :info-height)
+                                    (* (config :wnow-height) 2)
                                     (config :radar-width)
                                     (config :radar-height)]
                        ;:background (config :widget-style)

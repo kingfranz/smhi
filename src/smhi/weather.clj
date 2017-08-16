@@ -1,7 +1,7 @@
 (ns smhi.weather
     (:require 	(smhi 			[utils    :refer :all]
                      			[spec     :refer :all]
-                     			[config   :refer [config units week-minutes]])
+                     			[config   :refer [config units]])
               	(clojure.spec 	[alpha    :as s])
                 (clojure        [pprint   :as pp])
             	(clj-time 		[core     :as t]
@@ -24,6 +24,10 @@
 
 ; not nil if we got an exception
 (def weather-exception (atom nil))
+
+(defn week-minutes
+	[]
+	(* (config :graph-days) 24 60))
 
 (defn filter-param
     "filter SMHI data based on one specific unit"

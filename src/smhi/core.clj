@@ -33,7 +33,7 @@
 
 (defn setup-config
     []
-    (read-config-file)
+    ;(read-config-file)
 ;    (log/info "starting watch")
 ;    (let [changes (aw/changes-in ["./"])]
 ;        (async/go (while true
@@ -54,6 +54,7 @@
           height (.getHeight widget)
           left-x (.getX widget)
           top-y  (.getY widget)]
+      	;(println "inprint:" tag left-x top-y width height)
       	(sg/push g2d
                  (as-> g2d $
                        (sg/translate $ left-x top-y)
@@ -64,7 +65,7 @@
    	(let [widget (sc/select (smhi-frame) [tag])
           left-x (.getX widget)
           top-y  (.getY widget)]
-      	(println "WW" (.getWidth widget) "WH" (.getHeight widget) "WX" (.getX widget) "WY" (.getY widget))
+      	;(println "WW" (.getWidth widget) "WH" (.getHeight widget) "WX" (.getX widget) "WY" (.getY widget))
       	(sg/push g2d
                  (as-> g2d $
                        (sg/translate $ left-x top-y)
@@ -75,7 +76,18 @@
     ;(sd/debug!)
     (setup-log)
     (log/info "========= Starting up =========")    
-    (setup-config)
+    ;(println "horiz-res" (config :horiz-res))
+    ;(println "vert-res" (config :vert-res))
+    ;(println "graphics-height" (config :graphics-height))
+    ;(println "graphics-width" (config :graphics-width))
+    ;(println "clock-height" (config :clock-height))
+    ;(println "clock-width" (config :clock-width))
+    ;(println "radar-width" (config :radar-width))
+    ;(println "radar-height" (config :radar-height))
+    ;(println "wnow-height" (config :wnow-height))
+    ;(println "wnow-width" (config :wnow-width))
+    
+    (dump-config)
     (setup-images)
     
     (-> (smhi-frame) (set-screen args) sc/show!)

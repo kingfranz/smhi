@@ -77,17 +77,18 @@
           src-height    (.getHeight image)
           src-ratio     (/ src-width src-height)
           target-ratio  (/ target-width target-height)
+          eq            (fn [v1 v2] (= (int (* v1 100)) (int (* v2 100))))
           crop-func     (cond
-                          	(= src-ratio target-ratio)
+                          	(eq src-ratio target-ratio)
                            		(fn [x] x)
                            	(> src-ratio target-ratio)
-                            	(crop-fn (/ (* src-height target-ratio) 2)
+                            	(crop-fn (/ (- src-width (* src-height target-ratio)) 2)
                                       	 0
                                          (* src-height target-ratio)
                                          src-height)
                             :else
                             	(crop-fn 0
-                                         (/ (/ src-width target-ratio) 2)
+                                         (/ (- src-height (/ src-width target-ratio)) 2)
                                          src-width
                                       	 (/ src-width target-ratio)))
           new-img       (->> image
@@ -97,8 +98,7 @@
         ;(write-image (str "img-" (rand-int 100) ".png") new-img)
 ;      	(println "TW" (int target-width) "TH" (int target-height)
 ;                 "SW" (int src-width) "SH" (int src-height)
-;                 "CX" (int crop-ulx) "CY" (int crop-uly)
-;                 "CW" (int crop-width) "CH" (int crop-height)
+;                 "SR" (float src-ratio) "TR" (float target-ratio)
 ;                 (.getWidth new-img) (.getHeight new-img))
         new-img))
 

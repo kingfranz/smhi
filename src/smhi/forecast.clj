@@ -107,7 +107,7 @@
                    (/ width 2)
                    (dec height)
                    :rain-axis-text-style
-                   (fn [i] (/ i (/ (config :axis-span) (rain-axis-span))))
+                   (fn [i] (/ i (/ (config :axis-span) (config :max-rain-level))))
                    true))
 
 (defn draw-right-axis
@@ -143,24 +143,27 @@
 
 (defn draw-weekday
 	[^java.awt.Graphics2D g2d width height day-offset]
-  	(let [day-date     (t/plus (l/local-now) (t/days day-offset))
-		  day-idx      (mod (+ (day-of-week) day-offset) 7)
-		  day-str      (nth ["M" "T" "O" "T" "F" "L" "S"] day-idx)
-		  stroke-style (sg/style :foreground :white :background :white)
-          fill-style   (sg/style :foreground :black :background :black :font (config :day-font))
-          red-style    (sg/style :foreground :red :background :red :font (config :day-font))
-    	  outline      (.getOutline (TextLayout. day-str (config :day-font) (.getFontRenderContext g2d)) nil)
-		  stroke-out   (.createStrokedShape (sg/stroke :width (config :day-stroke-width)) outline)
-		  txt-x        (- (/ width 2) (/ (string-width g2d fill-style day-str) 2))
-		  txt-y        (+ (/ height 2) (/ (.height (.getBounds outline)) 2))
-		  day-fill     (if (red-day? day-date) red-style fill-style)]
+  	(let [day-date         (t/plus (l/local-now) (t/days day-offset))
+		  day-idx          (mod (+ (day-of-week) day-offset) 7)
+		  day-str          (nth ["M" "T" "O" "T" "F" "L" "S"] day-idx)
+          font-name        (str (config :day-font-name) "-" (config :day-font-size))
+		  outline          (.getOutline (TextLayout. day-str
+                                            		 (sf/font font-name)
+                                                	 (.getFontRenderContext g2d)) nil)
+		  stroke-out       (.createStrokedShape (sg/stroke :width (config :day-stroke-width)) outline)
+    	  day-fill-style   (sg/update-style (config :day-fill-style) :font font-name)
+		  day-red-style    (sg/update-style (config :day-red-style) :font font-name)
+		  day-stroke-style (sg/update-style (config :day-stroke-style) :font font-name)
+		  txt-x            (- (/ width 2) (/ (string-width g2d day-fill-style day-str) 2))
+		  txt-y            (+ (/ height 2) (/ (.height (.getBounds outline)) 2))
+		  day-fill         (if (red-day? day-date) day-red-style day-fill-style)]
         (sg/draw g2d
       		(sg/string-shape txt-x txt-y day-str)
       		day-fill)
         (sg/push g2d
         	(-> g2d
             	(sg/translate txt-x txt-y)
-            	(sg/draw stroke-out stroke-style)))))
+            	(sg/draw stroke-out day-stroke-style)))))
 
 (defn draw-day
   	[^java.awt.Graphics2D g2d width height day-offset]

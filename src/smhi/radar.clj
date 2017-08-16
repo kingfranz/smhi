@@ -95,6 +95,10 @@
 
 ;;-----------------------------------------------------------------------------
 
+(defn max-radar-queue-size
+	[]
+	(* (/ 60 (config :radar-interval-minutes)) (config :radar-ani-hours)))
+
 (defn add-radar-2-queue
     [image]
     (when (nil? @radar-queue)

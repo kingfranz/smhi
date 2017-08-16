@@ -63,8 +63,8 @@
     [widget ^java.awt.Graphics2D g2d]
   	;(log/trace "draw-background")
     (try
-        (when (some? background)
-            (draw-image g2d background))
+        (when (some? (background))
+            (draw-image g2d (background)))
         (catch Exception e
             (log/error e))))
 

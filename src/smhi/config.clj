@@ -5,6 +5,8 @@
 				 						[graphics :as sg]
 				 						[color    :as sclr]
 				 						[font     :as sf])
+            	(clojure.math 			[numeric-tower :as math])
+                (taoensso               [timbre      :as log])
     			(clojure				[pprint   :as pp]
                     					[string   :as str])))
 
@@ -35,11 +37,14 @@
 
 ;;-----------------------------------------------------------------------------
 
-(def ^:private horizontal-resolution (* 1920 2/3))
-(def ^:private vertical-resolution   (* 1080 2/3))
+(def ^:private std-horizontal-res 1920)
+(def ^:private std-vertical-res   1080)
 
-(def ^:private default-config
+(def ^:private default-config-fixed
 	{
+  	:horizontal-scale           1.0
+    :vertical-scale             1.0
+  
 	:radar-sub-width            112
 	:radar-sub-height           45
 	:radar-sub-upper-left-x     110
@@ -50,19 +55,11 @@
 	:radar-ani-hours            5
 	:radar-ani-delay-sec        6
 	:radar-url                  "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
-	:radar-txt-style            (sg/style :foreground :black :font "ARIAL-BOLD-64")
-    :radar-border-size          10
-    :radar-txt-x                220
-    :radar-txt-y                140
-	:radar-height               (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3)
-	:radar-width                (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3)))
  	:radar-width-long		    3.2
    
  	:clock-fps                  1
   	:clock-delay-sec            6
-	:clock-height               (- vertical-resolution (* vertical-resolution 1/3))
-	:clock-width                (- vertical-resolution (* vertical-resolution 1/3))
-    
+   
   	:weather-timer-initial-sec  0
 	:weather-timer-delay-min    30
 	:wind-style                 (sg/style :foreground :white :background :lightgray :stroke 1)
@@ -71,9 +68,6 @@
 	:cloud-style                (sg/style :foreground :green :background :lightgreen :stroke 8)
 	:axis-style                 (sg/style :foreground :white :background :white :stroke 2)
 	:day-tick-style             (sg/style :foreground :white :background :white :stroke 1)
-	:temp-axis-text-style       (sg/style :foreground :red :background :red :stroke 1 :font "ARIAL-BOLD-20")
-	:wind-axis-text-style       (sg/style :foreground :grey :background :grey :stroke 1 :font "ARIAL-BOLD-20")
-	:rain-axis-text-style       (sg/style :foreground :blue :background :blue :stroke 1 :font "ARIAL-BOLD-20")
 	:zero-line-style            (sg/style :foreground :white :background :white :stroke 1)
 	:text-circle-style          (sg/style :foreground :white :background :white :stroke 1)
 	:min-fixed-temp             -20
@@ -91,91 +85,105 @@
 	:degree-char                "\u00b0"
 	:max-rain-level             3
  	:right-axis-extra           30
-	:wnow-title-style           (sg/style :foreground :white :font "ARIAL-18")
-	:wnow-value-style           (sg/style :foreground :white :font "ARIAL-48")
 	:info-bg-style              (sg/style :foreground (sclr/color 32 32 32) :stroke 2
 							     		 :background (sclr/color 128 128 128 128))
-	:date-txt-style             (sg/style :foreground :white :background :black :stroke 2 :font "ARIAL-192")
-	:exception-style            (sg/style :foreground :red   :font "ARIAL-64")
 	:graph-days                 7
 	:axis-width                 2
  	:wnow-vt-adjust             -3
  	:wnow-vv-adjust             -19
   	:forecast-bg		        (sclr/color 128 128 128 128)
-   	:day-font                   (sf/font "ARIAL-192")
     :day-stroke-width           3
     :symbols-per-day            3
+    :day-stroke-style           (sg/style :foreground :white :background :white)
+    :day-fill-style             (sg/style :foreground :black :background :black)
+    :day-red-style              (sg/style :foreground :red :background :red)
+    :day-font-name              "ARIAL"
+    :day-font-size              192
      
-	:horiz-res                  horizontal-resolution
-	:vert-res                   vertical-resolution
-	:graphics-height            (* vertical-resolution 1/3)
-	:graphics-width             horizontal-resolution
-	:info-height                (- (- vertical-resolution (* vertical-resolution 1/3)) (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3))
-	:info-width                 (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3)))
-	:wnow-height                (/ (- (- vertical-resolution (* vertical-resolution 1/3)) (* (- vertical-resolution (* vertical-resolution 1/3)) 2/3)) 2)
-	:wnow-width                 (/ (- horizontal-resolution (- vertical-resolution (* vertical-resolution 1/3))) 5)
-	 
- 	:sun-box-dw                 50
- 	:sun-box-dh                 15
- 	:sun-box-dy                 40
- 	:sun-box-radius             50
-	:sun-txt-style              (sg/style :foreground :black :font "ARIAL-BOLD-36")
 	:sun-box-style              (sg/style :foreground :black :stroke 2 :background (sclr/color 140 140 140))
-	:up-down-dy                 100
-	:date-dy                    -100
-	:week-dy                    -180
- 	 
-	 
- 	:left-axis-width            100
-	:right-axis-width           50
      
 	:temp-padding               5
 	:wind-padding               2
-	:tick-width                 10
-	:temp-text-x                (- 100 10 3)
-	:wind-text-x                (- (/ 100 2) 10 3)
 	:axis-span                  10
 	:wind-axis-factor           3
 	:smhi-timeout               5000
 	:twilight-begin             :civil_twilight_begin
 	:twilight-end               :civil_twilight_end
-	:wnow-top-border            9
-    :wnow-center-border         6
-    :wnow-bottom-border         14
-    :wnow-side-border           10
     :wnow-title-part            1/3
-    :wnow-radius                10
     }) 
 
+(def ^:private default-config-var
+  	{
+    :radar-border-size  {:dir :both       :value 10}
+    :radar-txt-x        {:dir :horizontal :value 220}
+    :radar-txt-y        {:dir :vertical   :value 140}
+	:sun-box-dw         {:dir :horizontal :value 50}
+ 	:sun-box-dh         {:dir :vertical   :value 15}
+ 	:sun-box-dy         {:dir :vertical   :value 40}
+ 	:sun-box-radius     {:dir :both       :value 50}
+	:up-down-dy         {:dir :vertical   :value 100}
+	:date-dy            {:dir :vertical   :value -100}
+	:week-dy            {:dir :vertical   :value -180}
+ 	:left-axis-width    {:dir :horizontal :value 100}
+	:right-axis-width   {:dir :horizontal :value 50}
+	:tick-width         {:dir :horizontal :value 10}
+	:wnow-top-border    {:dir :vertical   :value 9}
+    :wnow-center-border {:dir :vertical   :value 6}
+    :wnow-bottom-border {:dir :vertical   :value 14}
+    :wnow-side-border   {:dir :horizontal :value 10}
+    :wnow-radius        {:dir :both       :value 10}
+    })
+
+(def ^:private default-config-style
+	{
+	:radar-txt-style      {:foreground :black :font "ARIAL-BOLD" :fontsz 64}
+	:temp-axis-text-style {:foreground :red :background :red :stroke 1 :font "ARIAL-BOLD" :fontsz 20}
+	:wind-axis-text-style {:foreground :grey :background :grey :stroke 1 :font "ARIAL-BOLD" :fontsz 20}
+	:rain-axis-text-style {:foreground :blue :background :blue :stroke 1 :font "ARIAL-BOLD" :fontsz 20}
+	:wnow-title-style     {:foreground :white :font "ARIAL" :fontsz 18}
+	:wnow-value-style     {:foreground :white :font "ARIAL" :fontsz 48}
+	:date-txt-style       {:foreground :white :background :black :stroke 2 :font "ARIAL" :fontsz 192}
+	:exception-style      {:foreground :red   :font "ARIAL" :fontsz 64}
+   	:sun-txt-style        {:foreground :black :font "ARIAL-BOLD" :fontsz 36}
+  	})
+
 ;;-----------------------------------------------------------------------------
 
-(def ^:private config-store (atom default-config))
+(def ^:private config-store (atom nil))
 
 ;;-----------------------------------------------------------------------------
 
-(defn config
-  	"retrive a config value"
-  	[kw]
-    {:pre [(keyword? kw)]}
-   	(when (nil? (get @config-store kw))
-      	(throw (ex-info (str "config: unknown key: " kw) {:cause :keyword})))
-    (get @config-store kw))
+(defn horiz-res       [] (* std-horizontal-res (:horizontal-scale @config-store)))
+(defn vert-res        [] (* std-vertical-res (:vertical-scale @config-store)))
+(defn graphics-width  [] (horiz-res))
+(defn graphics-height [] (* (vert-res) 1/3))
+(defn clock-width     [] (* (vert-res) 2/3))
+(defn clock-height    [] (* (vert-res) 2/3))
+(defn radar-width     [] (- (horiz-res) (clock-width)))
+(defn radar-height    [] (* (clock-height) 2/3))
+(defn wnow-width      [] (/ (radar-width) 5))
+(defn wnow-height     [] (/ (- (vert-res) (graphics-height) (radar-height)) 2))
 
-(defn week-minutes
-	[]
-	(* (config :graph-days) 24 60))
+(defn scale-v
+  	[hscale vscale bscale {dir :dir value :value}]
+    (cond
+		(= dir :horizontal) (* value hscale)
+		(= dir :vertical) (* value vscale)
+		:else (* value bscale)))
 
-(defn rain-axis-span
-	[]
-	(config :max-rain-level))
+(defn do-upd
+  	[s value k]
+    (if (some? (get value k))
+      	(sg/update-style s k (get value k))
+       	s))
 
-(defn radar-interval-ms
-	[]
-	(* (config :radar-interval-minutes) 60 1000))
-
-(defn max-radar-queue-size
-	[]
-	(* (/ 60 (config :radar-interval-minutes)) (config :radar-ani-hours)))
+(defn mk-style
+  	[value bscale]
+    ;(println "mk-style:" (str (:font value) "-" (int (* (:fontsz value) bscale))))
+	(-> (sg/style :font (str (:font value) "-" (int (* (:fontsz value) bscale))))
+		(do-upd value :foreground)
+		(do-upd value :background)
+		(do-upd value :stroke)))
 
 ;;-----------------------------------------------------------------------------
 
@@ -260,16 +268,69 @@
   	[value]
     (sf/font (:font value)))
 
-(defn read-config-file
-	[]
- 	(spit config-name (with-out-str (prn (convert-config default-config))))
-	(some->> config-name
-             slurp
-             (edn/read-string {:readers {'smhi.config.SMHIStyle create-style
-                                         'smhi.config.SMHIColor create-color
-                                         'smhi.config.SMHIFont  create-font}})
-             (reset! config-store)
-             ))
+(defn write-config
+  	[]
+   	(log/trace "write-config ENTER")
+   	(spit config-name (with-out-str (prn {
+		:fixed (convert-config default-config-fixed)
+  		:vars  (convert-config default-config-var)
+    	:style (convert-config default-config-style)})))
+    (log/trace "write-config EXIT")
+   	)
+
+(defn dump-config
+  	[]
+    (spit "cdump.edn" (with-out-str (pp/pprint @config-store))))
+
+(defn load-config
+  	[]
+    (log/trace "load-config ENTER")
+   	(write-config)
+   	(let [conf (some->> config-name
+             			slurp
+             			(edn/read-string {:readers {'smhi.config.SMHIStyle create-style
+                                         			'smhi.config.SMHIColor create-color
+                                         			'smhi.config.SMHIFont  create-font}}))
+          hscale (-> conf :fixed :horizontal-scale)
+          vscale (-> conf :fixed :vertical-scale)
+          bscale (/ (math/sqrt (+ hscale vscale)) (math/sqrt 2.0))
+          vars   (into {} (map (fn [[k v]] [k (scale-v hscale vscale bscale v)]) (:vars conf)))
+          styles (into {} (map (fn [[k v]] [k (mk-style v bscale)]) (:style conf)))
+          ]
+      	(reset! config-store (merge (:fixed conf) vars styles)))
+    (log/trace "load-config EXIT")
+   	)
+
+(defn load-default-config
+  	[]
+   	(log/trace "load-default-config ENTER")
+   	(let [vars   (into {} (map (fn [[k v]] [k (scale-v 1 1 1 v)]) default-config-var))
+          styles (into {} (map (fn [[k v]] [k (mk-style v 1)]) default-config-style))]
+      	(reset! config-store (merge default-config-fixed vars styles)))
+    (log/trace "load-default-config EXIT"))
+
+(defn config
+  	"retrive a config value"
+  	[kw]
+    {:pre [(keyword? kw)]}
+    ;(log/trace "config" kw (nil? @config-store) (some-> @config-store (get kw)))
+   	(when (nil? @config-store)
+      	(try
+         	(load-config)
+          	(catch Exception e (load-default-config))))
+    (cond
+      	(some? (get @config-store kw)) (get @config-store kw)
+       	(= kw :horiz-res)       (horiz-res)
+        (= kw :vert-res)        (vert-res)
+        (= kw :graphics-height) (graphics-height)
+        (= kw :graphics-width)  (graphics-width)
+        (= kw :clock-height)    (clock-height)
+        (= kw :clock-width)     (clock-width)
+        (= kw :radar-width)     (radar-width)
+        (= kw :radar-height)    (radar-height)
+        (= kw :wnow-height)     (wnow-height)
+        (= kw :wnow-width)      (wnow-width)
+        ))
 
 ;;-----------------------------------------------------------------------------
 
