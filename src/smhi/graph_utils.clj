@@ -28,7 +28,8 @@
 (defn write-image
     [fname image]
     ;(log/info "enter: read-image")
-    (javax.imageio.ImageIO/write image "png" (java.io.File. fname))
+    (javax.imageio.ImageIO/write image "png" (java.io.File.
+		(str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname)))
     image)
 
 (defn fill

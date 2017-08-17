@@ -57,11 +57,10 @@
 (defn mk-map
   	[]
    	(let [mmap (config :master-map)
-          fname (str (config :image-dir)
-                     "map-" (:center-x mmap) "-" (:center-y mmap) "-" (:width mmap) ".png")]
+          fname (str "map-" (:center-x mmap) "-" (:center-y mmap) "-" (:width mmap) ".png")]
       	(if (.exists (io/as-file fname))
          	(read-image fname)
-          	(let [master (read-image (str (config :image-dir) (:filename mmap)))
+          	(let [master (read-image (:filename mmap))
                   height (/ (:width mmap) (/ (config :radar-width) (config :radar-height)))
                   ulx    (- (:center-x mmap) (/ (:width mmap) 2))
                   uly    (- (:center-y mmap) (/ height 2))]
@@ -73,51 +72,60 @@
       			  		  (write-image fname $))
                  	(sg/buffered-image (config :radar-width) (config :radar-height)))))))
 
+(defn load-scaled
+  	[w h f-name]
+    (let [fname (str f-name "-" w "-" h ".png")]
+      	(if (.exists (io/as-file fname))
+         	(read-image fname)
+          	(let [img (scale-image w h (read-image (str f-name ".png")))]
+             	(write-image fname img)
+              	img))))
+
 (defn setup-images
     []
     (log/info "enter: setup-images")
     
     (reset! small-symbols (into {} (pmap (fn [i]
-                          {i (read-image (format "symbol-%02dAs.png" i))})
+                          {i (load-scaled (config :small-symbol-sz)
+                                          (config :small-symbol-sz)
+                                          (format "symbol-%02dAs" i))})
                           (range 16))))
     
     (reset! large-symbols (into {} (pmap (fn [i]
-                          {i (scale-image (config :wnow-width)
+                          {i (load-scaled (config :wnow-width)
                                           (config :wnow-height)
-                                          (read-image (format "symbol-%02dA.png" i)))})
+                                          (format "symbol-%02dA" i))})
                           (range 1 16))))
 
     (reset! hourhands (into {} (pmap (fn [i]
-                          {i (scale-image (config :clock-width)
+                          {i (load-scaled (config :clock-width)
                                           (config :clock-height)
-                                          (read-image (format "hourhand-%d.png" i)))})
+                                          (format "hourhand-%d" i))})
                           (range 60))))
     
     (reset! minutehands (into {} (pmap (fn [i]
-                          {i (scale-image (config :clock-width)
+                          {i (load-scaled (config :clock-width)
                                           (config :clock-height)
-                                          (read-image (format "minutehand-%d.png" i)))})
+                                          (format "minutehand-%d" i))})
                           (range 60))))
     
     (reset! secondhands (into {} (pmap (fn [i]
-                          {i (scale-image (config :clock-width)
+                          {i (load-scaled (config :clock-width)
                                           (config :clock-height)
-                                          (read-image (format "secondhand-%d.png" i)))})
+                                          (format "secondhand-%d" i))})
                           (range 60))))
     
     (reset! pictures {
-        :map-pic     (scale-image (config :radar-width)
-                                  (config :radar-height)
-                                  (mk-map))
-        :clock-pic   (scale-image (config :clock-width)
+        :map-pic     (mk-map)
+        :clock-pic   (load-scaled (config :clock-width)
                                   (config :clock-height)
-                                  (read-image "clock-rim.png"))
-        :compass-pic (scale-image (config :wnow-width)
+                                  "clock-rim")
+        :compass-pic (load-scaled (config :wnow-width)
                                   (config :wnow-height)
-                                  (read-image "compass.png"))
-        :arrow-pic   (scale-image (config :wnow-width)
+                                  "compass")
+        :arrow-pic   (load-scaled (config :wnow-width)
                                   (config :wnow-height)
-                                  (read-image "arrow.png"))}))
+                                  "arrow")}))
 
 (defn get-pic
   	[k]

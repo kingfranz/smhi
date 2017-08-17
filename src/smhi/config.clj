@@ -132,6 +132,7 @@
     :wnow-bottom-border {:dir :vertical   :value 14}
     :wnow-side-border   {:dir :horizontal :value 10}
     :wnow-radius        {:dir :both       :value 10}
+    :small-symbol-sz    {:dir :both       :value 50}
     })
 
 (def ^:private default-config-style
@@ -153,23 +154,23 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn horiz-res       [] (* std-horizontal-res (:horizontal-scale @config-store)))
-(defn vert-res        [] (* std-vertical-res (:vertical-scale @config-store)))
-(defn graphics-width  [] (horiz-res))
-(defn graphics-height [] (* (vert-res) 1/3))
-(defn clock-width     [] (* (vert-res) 2/3))
-(defn clock-height    [] (* (vert-res) 2/3))
-(defn radar-width     [] (- (horiz-res) (clock-width)))
-(defn radar-height    [] (* (clock-height) 2/3))
-(defn wnow-width      [] (/ (radar-width) 5))
-(defn wnow-height     [] (/ (- (vert-res) (graphics-height) (radar-height)) 2))
+(defn horiz-res       [] (math/round (* std-horizontal-res (:horizontal-scale @config-store))))
+(defn vert-res        [] (math/round (* std-vertical-res (:vertical-scale @config-store))))
+(defn graphics-width  [] (math/round (horiz-res)))
+(defn graphics-height [] (math/round (* (vert-res) 1/3)))
+(defn clock-width     [] (math/round (* (vert-res) 2/3)))
+(defn clock-height    [] (math/round (* (vert-res) 2/3)))
+(defn radar-width     [] (math/round (- (horiz-res) (clock-width))))
+(defn radar-height    [] (math/round (* (clock-height) 2/3)))
+(defn wnow-width      [] (math/round (/ (radar-width) 5)))
+(defn wnow-height     [] (math/round (/ (- (vert-res) (graphics-height) (radar-height)) 2)))
 
 (defn scale-v
   	[hscale vscale bscale {dir :dir value :value}]
     (cond
-		(= dir :horizontal) (* value hscale)
-		(= dir :vertical) (* value vscale)
-		:else (* value bscale)))
+		(= dir :horizontal) (math/round (* value hscale))
+		(= dir :vertical)   (math/round (* value vscale))
+		:else               (math/round (* value bscale))))
 
 (defn do-upd
   	[s value k]
@@ -180,7 +181,7 @@
 (defn mk-style
   	[value bscale]
     ;(println "mk-style:" (str (:font value) "-" (int (* (:fontsz value) bscale))))
-	(-> (sg/style :font (str (:font value) "-" (int (* (:fontsz value) bscale))))
+	(-> (sg/style :font (str (:font value) "-" (math/round (* (:fontsz value) bscale))))
 		(do-upd value :foreground)
 		(do-upd value :background)
 		(do-upd value :stroke)))
