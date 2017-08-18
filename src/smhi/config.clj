@@ -71,7 +71,9 @@
 	:text-circle-style          (sg/style :foreground :white :background :white :stroke 1)
 	:min-fixed-temp             -20
 	:max-fixed-temp             30
-	:image-dir                  "resources/"
+	:image-dir                  "images/"
+ 	:image-cache-dir            "image-cache/"
+ 	:background-dir             "backgrounds/"
  	:master-map				    {:filename "master-map.jpg" :center-x 2187 :center-y 11615 :width 2100}
   
 	:latitude                   58.786869

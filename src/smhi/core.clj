@@ -119,7 +119,6 @@
             (inprint bg-g2d :#wnow-thunder 		  draw-wnow-thunder)
             (inprint bg-g2d :#wnow-direction-txt  draw-wnow-direction-txt)
             (inprint bg-g2d :#wnow-direction-symb draw-wnow-direction-symb)
-            ;(write-image "test.png" bkgrnd)
             (set-background bkgrnd)
             (sc/repaint! (sc/select (smhi-frame) [:#lbl-back]))))
         :initial-delay (* 1000 (config :radar-timer-initial-sec))

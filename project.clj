@@ -1,4 +1,4 @@
-(defproject smhi "2.3.0"
+(defproject smhi "2.4.0"
   :description "SMHI weather clock"
   :url "http://smhi.se"
   :license {:name "Eclipse Public License"

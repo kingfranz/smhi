@@ -44,22 +44,24 @@
   	"get list of available background images"
     []
     (log/info "enter: get-background-list")
-    (get-dir-list (config :image-dir) #"background-\d+\.(png|jpg|jpeg)$"))
+    (get-dir-list (config :background-dir) #".+\.(png|jpg|jpeg)$"))
 
 (defn get-background-name
   	"pick a random background"
     []
     (log/info "enter: get-background-name")
-    (let [backgrounds (get-background-list)
-          num-bg      (count backgrounds)]
-        (nth backgrounds (rand-int num-bg))))
+    (let [backgrounds   (get-background-list)
+          num-bg        (count backgrounds)
+          path-and-name (nth backgrounds (rand-int num-bg))
+          jf            (java.io.File. path-and-name)]
+        (.getName jf)))
 
 (defn mk-map
   	[]
    	(let [mmap (config :master-map)
           fname (str "map-" (:center-x mmap) "-" (:center-y mmap) "-" (:width mmap) ".png")]
-      	(if (image-exists? fname)
-         	(read-image fname)
+      	(if (cache-image-exists? fname)
+         	(read-cache-image fname)
           	(let [master (read-image (:filename mmap))
                   height (/ (:width mmap) (/ (config :radar-width) (config :radar-height)))
                   ulx    (- (:center-x mmap) (/ (:width mmap) 2))
@@ -69,16 +71,16 @@
                 	(as-> master $
                   		  (.getSubimage $ ulx uly (:width mmap) height)
           		  		  (resize-to-width $ (config :radar-width))
-      			  		  (write-image fname $))
+      			  		  (write-cache-image fname $))
                  	(sg/buffered-image (config :radar-width) (config :radar-height)))))))
 
 (defn load-scaled
   	[w h f-name]
     (let [fname (str f-name "-" w "-" h ".png")]
-      	(if (image-exists? fname)
-         	(read-image fname)
+      	(if (cache-image-exists? fname)
+         	(read-cache-image fname)
           	(let [img (scale-image w h (read-image (str f-name ".png")))]
-             	(write-image fname img)
+             	(write-cache-image fname img)
               	img))))
 
 (defn setup-images
@@ -97,23 +99,23 @@
                                           (format "symbol-%02dA" i))})
                           (range 1 16))))
 
-    (reset! hourhands (into {} (pmap (fn [i]
-                          {i (load-scaled (config :clock-width)
-                                          (config :clock-height)
-                                          (format "hourhand-%d" i))})
-                          (range 60))))
+;    (reset! hourhands (into {} (pmap (fn [i]
+;                          {i (load-scaled (config :clock-width)
+;                                          (config :clock-height)
+;                                          (format "hourhand-%d" i))})
+;                          (range 60))))
     
-    (reset! minutehands (into {} (pmap (fn [i]
-                          {i (load-scaled (config :clock-width)
-                                          (config :clock-height)
-                                          (format "minutehand-%d" i))})
-                          (range 60))))
+;    (reset! minutehands (into {} (pmap (fn [i]
+;                          {i (load-scaled (config :clock-width)
+;                                          (config :clock-height)
+;                                          (format "minutehand-%d" i))})
+;                          (range 60))))
     
-    (reset! secondhands (into {} (pmap (fn [i]
-                          {i (load-scaled (config :clock-width)
-                                          (config :clock-height)
-                                          (format "secondhand-%d" i))})
-                          (range 60))))
+;    (reset! secondhands (into {} (pmap (fn [i]
+;                          {i (load-scaled (config :clock-width)
+;                                          (config :clock-height)
+;                                          (format "secondhand-%d" i))})
+;                          (range 60))))
     
     (reset! pictures {
         :map-pic     (mk-map)
@@ -138,27 +140,30 @@
 
 (defn get-hourhand
   	[i]
-   	{:pre [(q-valid? (s/int-in 0 60) i)
-           (q-valid? some? @hourhands)
-           (q-valid? map? @hourhands)
-           (q-valid? some? (get @hourhands i))]}
-    (get @hourhands i))
+   	{:pre [(q-valid? (s/int-in 0 60) i)]}
+    (load-scaled (config :clock-width)
+                 (config :clock-height)
+                 (format "hourhand-%d" i))
+    ;(get @hourhands i)
+    )
 
 (defn get-minutehand
   	[i]
-   	{:pre [(q-valid? (s/int-in 0 60) i)
-           (q-valid? some? @minutehands)
-           (q-valid? map? @minutehands)
-           (q-valid? some? (get @minutehands i))]}
-    (get @minutehands i))
+   	{:pre [(q-valid? (s/int-in 0 60) i)]}
+    (load-scaled (config :clock-width)
+                  (config :clock-height)
+                  (format "minutehand-%d" i))
+    ;(get @minutehands i)
+    )
 
 (defn get-secondhand
   	[i]
-   	{:pre [(q-valid? (s/int-in 0 60) i)
-           (q-valid? some? @secondhands)
-           (q-valid? map? @secondhands)
-           (q-valid? some? (get @secondhands i))]}
-    (get @secondhands i))
+   	{:pre [(q-valid? (s/int-in 0 60) i)]}
+    (load-scaled (config :clock-width)
+                  (config :clock-height)
+                  (format "secondhand-%d" i))
+    ;(get @secondhands i)
+    )
 
 (defn get-symbol
   	[k]
@@ -181,10 +186,18 @@
 (defn load-background
   	"load a background image"
     []
-    ;(log/info "enter: set-background")
-    (->> (get-background-name)
-         (read-image)
-         (scale-image (config :horiz-res) (config :vert-res))))
+    (let [fname      (get-background-name)
+          name-parts (re-find #"^(.+)\.(.+)$" fname)
+          cname      (str (nth name-parts 1) "-" (config :horiz-res) "-" (config :vert-res) "." (nth name-parts 2))]
+      	(if (cache-image-exists? cname)
+         	(read-cache-image cname)
+         	(let [image (->> fname
+                             (str (config :background-dir))
+                             (java.io.File.)
+                             (javax.imageio.ImageIO/read)
+         					 (scale-image (config :horiz-res) (config :vert-res)))]
+            	(write-cache-image cname image)
+             	image))))
 
 (defn set-background
   	"load an image and set it as background"

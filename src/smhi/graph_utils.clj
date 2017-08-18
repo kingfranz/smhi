@@ -20,22 +20,28 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn image-exists?
+(defn cache-image-exists?
     [fname]
-    (log/info "image-exists?:" fname)
-    (.exists (io/as-file (str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname))))
+    ;(log/info "cache-image-exists?:" fname)
+    (.exists (io/as-file (str (config :image-cache-dir) fname))))
 
 (defn read-image
     [fname]
-    (log/info "read-image:" fname)
+    ;(log/info "read-image:" fname)
     (javax.imageio.ImageIO/read (java.io.File.
-        (str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname))))
+        (str (config :image-dir) fname))))
 
-(defn write-image
+(defn read-cache-image
+    [fname]
+    ;(log/info "read-cache-image:" fname)
+    (javax.imageio.ImageIO/read (java.io.File.
+        (str (config :image-cache-dir) fname))))
+
+(defn write-cache-image
     [fname image]
-    (log/info "write-image:" fname)
+    ;(log/info "write-cache-image:" fname)
     (javax.imageio.ImageIO/write image "png" (java.io.File.
-		(str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname)))
+		(str (config :image-cache-dir) fname)))
     image)
 
 (defn fill
@@ -102,11 +108,6 @@
               				 (crop-func)
               				 ((resize-fn target-width target-height ultra-quality)))
           ]
-        ;(write-image (str "img-" (rand-int 100) ".png") new-img)
-;      	(println "TW" (int target-width) "TH" (int target-height)
-;                 "SW" (int src-width) "SH" (int src-height)
-;                 "SR" (float src-ratio) "TR" (float target-ratio)
-;                 (.getWidth new-img) (.getHeight new-img))
         new-img))
 
 ;;-----------------------------------------------------------------------------
