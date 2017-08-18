@@ -4,6 +4,7 @@
               	(clj-time 		[core          :as t]
             					[format        :as f]
             					[local         :as l])
+              	(clojure.java 	[io            :as io])
             	(clojure.math 	[numeric-tower :as math])
             	(seesaw 		[timer         :as st]
             					[core          :as sc]
@@ -19,15 +20,20 @@
 
 ;;-----------------------------------------------------------------------------
 
+(defn image-exists?
+    [fname]
+    (log/info "image-exists?:" fname)
+    (.exists (io/as-file (str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname))))
+
 (defn read-image
     [fname]
-    ;(log/info "enter: read-image")
+    (log/info "read-image:" fname)
     (javax.imageio.ImageIO/read (java.io.File.
         (str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname))))
 
 (defn write-image
     [fname image]
-    ;(log/info "enter: read-image")
+    (log/info "write-image:" fname)
     (javax.imageio.ImageIO/write image "png" (java.io.File.
 		(str (when-not (clojure.string/includes? fname "/") (config :image-dir)) fname)))
     image)

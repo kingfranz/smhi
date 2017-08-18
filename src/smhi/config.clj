@@ -46,14 +46,13 @@
     :vertical-scale             1.0
   
 	:radar-sub-width            112
-	:radar-sub-height           45
-	:radar-sub-upper-left-x     110
-	:radar-sub-upper-left-y     595
+	:radar-sub-center-x         (+ 110 112/2)
+	:radar-sub-center-y         (+ 595 45/2)
 	:radar-timer-initial-sec    0
 	:radar-interval-minutes     5
 	:radar-fps                  10
 	:radar-ani-hours            5
-	:radar-ani-delay-sec        6
+	:radar-ani-delay-sec        2
 	:radar-url                  "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
  	:radar-width-long		    3.2
    
@@ -63,9 +62,9 @@
   	:weather-timer-initial-sec  0
 	:weather-timer-delay-min    30
 	:wind-style                 (sg/style :foreground :white :background :lightgray :stroke 1)
-	:rain-style                 (sg/style :foreground :blue :background :blue :stroke 1)
+	:rain-style                 (sg/style :foreground :blue :background :red :stroke 1)
 	:temp-style                 (sg/style :foreground :red :background :red :stroke 8)
-	:cloud-style                (sg/style :foreground :green :background :lightgreen :stroke 8)
+	:cloud-style                (sg/style :foreground :lightgreen :background :lightgreen :stroke 10)
 	:axis-style                 (sg/style :foreground :white :background :white :stroke 2)
 	:day-tick-style             (sg/style :foreground :white :background :white :stroke 1)
 	:zero-line-style            (sg/style :foreground :white :background :white :stroke 1)
@@ -310,15 +309,18 @@
       	(reset! config-store (merge default-config-fixed vars styles)))
     (log/trace "load-default-config EXIT"))
 
+(def ^:private data-lock (Object.))
+
 (defn config
   	"retrive a config value"
   	[kw]
     {:pre [(keyword? kw)]}
     ;(log/trace "config" kw (nil? @config-store) (some-> @config-store (get kw)))
-   	(when (nil? @config-store)
-      	(try
-         	(load-config)
-          	(catch Exception e (load-default-config))))
+   	(locking data-lock
+      	(when (nil? @config-store)
+	      	(try
+	         	(load-config)
+	          	(catch Exception e (load-default-config)))))
     (cond
       	(some? (get @config-store kw)) (get @config-store kw)
        	(= kw :horiz-res)       (horiz-res)

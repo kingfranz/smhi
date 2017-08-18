@@ -97,7 +97,8 @@
 
 ;;-----------------------------------------------------------------------------
 
-(def date-data (atom {}))
+(def ^:private date-data (atom {}))
+(def ^:private data-lock (Object.))
 
 ;;-----------------------------------------------------------------------------
 
@@ -105,13 +106,14 @@
 	[target]
  	{:pre [(instance? org.joda.time.LocalDate target)]
      :post [(s/valid? :dates/dag %)]}
-  	(log/trace "get-date-info")
-	(if-let [data (get @date-data target)]
-		data
-		(let [new-data (send-date-request target)
-			  new-day  (first (:dagar new-data))]
-			(swap! date-data (fn [x] (assoc x target new-day)))
-			new-day)))
+  	(log/trace "get-date-info " target)
+	(locking data-lock
+   		(if-let [data (some-> @date-data (get target))]
+			data
+			(let [new-data (send-date-request target)
+				  new-day  (first (:dagar new-data))]
+				(swap! date-data (fn [x] (assoc x target new-day)))
+				new-day))))
 
 ;;-----------------------------------------------------------------------------
 
@@ -119,8 +121,7 @@
 	[target]
  	{:pre [(instance? org.joda.time.DateTime target)]
      :post [(instance? org.joda.time.LocalDate %)]}
-    (log/trace "dt->d")
-	(t/local-date (t/year target) (t/month target) (t/day target)))
+    (t/local-date (t/year target) (t/month target) (t/day target)))
 
 ;;-----------------------------------------------------------------------------
 

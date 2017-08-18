@@ -58,7 +58,7 @@
   	[]
    	(let [mmap (config :master-map)
           fname (str "map-" (:center-x mmap) "-" (:center-y mmap) "-" (:width mmap) ".png")]
-      	(if (.exists (io/as-file fname))
+      	(if (image-exists? fname)
          	(read-image fname)
           	(let [master (read-image (:filename mmap))
                   height (/ (:width mmap) (/ (config :radar-width) (config :radar-height)))
@@ -75,7 +75,7 @@
 (defn load-scaled
   	[w h f-name]
     (let [fname (str f-name "-" w "-" h ".png")]
-      	(if (.exists (io/as-file fname))
+      	(if (image-exists? fname)
          	(read-image fname)
           	(let [img (scale-image w h (read-image (str f-name ".png")))]
              	(write-image fname img)

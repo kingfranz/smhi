@@ -1,4 +1,4 @@
-(defproject smhi "2.0.0"
+(defproject smhi "2.3.0"
   :description "SMHI weather clock"
   :url "http://smhi.se"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,7 @@
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [http-kit "2.2.0"]
                  [image-resizer "0.1.10"]
-                 [org.clojure/tools.reader "1.0.3"]
+                 [org.clojure/tools.reader "1.0.5"]
                  [org.clojure/data.zip "0.1.2"]
                  [async-watch "0.1.1"]
                  [clj-time "0.14.0"]]

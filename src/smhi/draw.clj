@@ -31,7 +31,7 @@
 		(let [now    (l/local-now)
 	    	  sec    (t/second now)
 	    	  minute (+ (t/minute now) (/ sec 60.0))
-	    	  hour   (+ (t/hour now) (/ minute 60.0))]
+	    	  hour   (+ (* (t/hour now) 5) (* (/ minute 60.0) 5))]
 	    	(draw-image g2d (get-hourhand (int hour)))
 	    	(draw-image g2d (get-minutehand (int minute)))
 	    	(draw-image g2d (get-secondhand (int sec))))

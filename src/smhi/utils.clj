@@ -56,6 +56,17 @@
   	([dt]
    	(f/unparse (f/with-zone (f/formatters :hour-minute) (t/default-time-zone)) dt)))
 
+(defn retry-func
+  	[retries wait-sec func & opts]
+   	(try
+     	(apply func opts)
+      	(catch Exception e
+         	(if (zero? retries)
+            	(throw e)
+             	(do
+                	(Thread/sleep (* wait-sec 1000))
+                	(apply retry-func (dec retries) wait-sec func opts))))))
+
 ;;-----------------------------------------------------------------------------
 
 (defn now-str
@@ -63,7 +74,7 @@
     []
     (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
-(defn send-request
+(defn send-request*
     [url resp-type]
     (let [ret-type (if (= resp-type :json) :text :byte-array)
           {:keys [status headers body error] :as resp} @(http/get url {:timeout (config :smhi-timeout) :as ret-type})]
@@ -73,6 +84,10 @@
             	(throw (Exception. "unknown network errror")))
           	body)))
 
+(defn send-request
+  	[url resp-type]
+   	(retry-func 5 5 send-request* url resp-type))
+
 (defn fix-text
 	[r func]
 	(let [r* (if (coll? r) (str/join r) r)]
@@ -80,10 +95,8 @@
 			(func r*)
 			r*)))
 
-(defn send-json-request
-	([url]
-	(send-json-request url nil))
-	([url func]
+(defn send-json-request*
+	[url func]
 	(let [response (send-request url :json)]
 		(try
         	(-> response
@@ -91,7 +104,13 @@
         		(json/read-str :key-fn keyword))
 		    (catch Exception je
 		    	(spit "clock-error.log" (str (now-str) "\n" response) :append true)
-		    	(throw je))))))
+		    	(throw je)))))
+
+(defn send-json-request
+  	([url]
+	(send-json-request url nil))
+	([url func]
+   	(retry-func 5 5 send-json-request* url func)))
 
 (defn abs
     [x]

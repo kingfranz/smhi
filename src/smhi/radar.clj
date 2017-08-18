@@ -1,6 +1,6 @@
 (ns smhi.radar
-    (:require 	(smhi 			[utils         :as utils]
-              					[graph-utils   :as gutils]
+    (:require 	(smhi 			[utils         :refer :all]
+              					[graph-utils   :refer :all]
                    				[draw          :refer :all]
                    				[images        :refer :all]
               					[config        :refer :all])
@@ -35,33 +35,39 @@
     (let [map-pic      (get-pic :map-pic)
           map-width    (.getWidth map-pic)
           map-height   (.getHeight map-pic)
+          radar-sub-height (/ (config :radar-sub-width) (/ map-width map-height))
           sub-radar    (.getSubimage radar-pic
-                                     (config :radar-sub-upper-left-x)
-                                     (config :radar-sub-upper-left-y)
+                                     (- (config :radar-sub-center-x) (/ (config :radar-sub-width) 2))
+                                     (- (config :radar-sub-center-y) (/ radar-sub-height 2))
                                      (config :radar-sub-width)
-                                     (config :radar-sub-height))
+                                     radar-sub-height)
           width-ratio  (/ (- map-width  (* (config :radar-border-size) 2)) (config :radar-sub-width))
-          height-ratio (/ (- map-height (* (config :radar-border-size) 2)) (config :radar-sub-height))
+          height-ratio (/ (- map-height (* (config :radar-border-size) 2)) radar-sub-height)
           buffer       (sg/buffered-image map-width map-height)
           buffer-g2d   (.createGraphics buffer)
-          time-txt     (utils/hour-minute)
-          time-width   (utils/string-width buffer-g2d (config :radar-txt-style) time-txt)
-          time-height  (utils/string-height buffer-g2d (config :radar-txt-style))]
+          time-txt     (hour-minute)
+          time-width   (string-width buffer-g2d (config :radar-txt-style) time-txt)
+          time-height  (string-height buffer-g2d (config :radar-txt-style))]
         (sg/draw buffer-g2d
           	(sg/image-shape 0 0 map-pic)
             nil)
+        (draw-line-seq buffer-g2d
+                       [[(/ (config :radar-border-size) 2) (/ (config :radar-border-size) 2)]
+                        [(- map-width (/ (config :radar-border-size) 2)) (/ (config :radar-border-size) 2)]
+                        [(- map-width (/ (config :radar-border-size) 2)) (- map-height(/ (config :radar-border-size) 2))]
+                        [(/ (config :radar-border-size) 2) (- map-height(/ (config :radar-border-size) 2))]
+                        [(/ (config :radar-border-size) 2) (/ (config :radar-border-size) 2)]]
+                       (sg/style :foreground :black :stroke (config :radar-border-size)))
         (sg/push buffer-g2d
-          	(sg/scale buffer-g2d width-ratio height-ratio)
-        	(sg/draw buffer-g2d
-          		(sg/image-shape 1 1 sub-radar)
-            	nil))
+            (sg/translate buffer-g2d (config :radar-border-size) (config :radar-border-size))
+          	(sg/scale     buffer-g2d width-ratio height-ratio)
+        	(sg/draw      buffer-g2d (sg/image-shape 0 0 sub-radar) nil))
         (sg/draw buffer-g2d
             (sg/string-shape (- (config :radar-txt-x) time-width)
                              (- (config :radar-txt-y) time-height)
                              time-txt)
             (config :radar-txt-style))
-        ;buffer
-        map-pic))
+        buffer))
 
 (defn have-radar-data
     []
@@ -110,8 +116,8 @@
 (defn get-radar-image
     "get latest radar image from SMHI"
     []
-    (let [data    (utils/send-request (config :radar-url) :image)
-          img     (utils/byte-array-2-image data)
+    (let [data    (send-request (config :radar-url) :image)
+          img     (byte-array-2-image data)
           imgtype (java.awt.image.BufferedImage/TYPE_INT_ARGB)
           width   (.getWidth img)
           height  (.getHeight img)
