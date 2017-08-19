@@ -1,7 +1,7 @@
 #!/bin/bash
 
-for i in {58..59}
+for i in {50..50}
 do
-    echo $i "$(($i * 6))" "hourhand-$i.png"
-    convert resources/hourhand-0.png -antialias -background transparent -rotate "$(($i * 6))" "hourhand-$i.png"
+    echo $i "$(($i * 6))" "secondhand-$i.png"
+    convert images/hourhand-0.png -antialias -background transparent -rotate "$(($i * 6))" "hourhand-$i.png"
 done
