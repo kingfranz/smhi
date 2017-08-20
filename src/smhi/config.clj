@@ -95,11 +95,9 @@
   	:forecast-bg		        (sclr/color 128 128 128 128)
     :day-stroke-width           3
     :symbols-per-day            3
-    :day-stroke-style           (sg/style :foreground :white :background :white)
-    :day-fill-style             (sg/style :foreground :black :background :black)
-    :day-red-style              (sg/style :foreground :red :background :red)
-    :day-font-name              "ARIAL"
-    :day-font-size              192
+    :day-outline-style          (sg/style :foreground :white :stroke 3 :font "ARIAL-192")
+    :day-style                  (sg/style :foreground :black :stroke 3 :font "ARIAL-192")
+    :day-red-style              (sg/style :foreground :red   :stroke 3 :font "ARIAL-192")
      
 	:sun-box-style              (sg/style :foreground :black :stroke 2 :background (sclr/color 140 140 140))
      
@@ -111,6 +109,15 @@
 	:twilight-begin             :civil_twilight_begin
 	:twilight-end               :civil_twilight_end
     :wnow-title-part            1/3
+    
+    :bar-width-percent			0.80
+    :bar-height-percent			0.10
+    :date-str-y					0.20
+    :time-str-y					0.30
+    :today-bar-y				0.40
+    :month-bar-y				0.60
+    :year-bar-y					0.80
+    :bar-style					(sg/style :foreground :grey :stroke 4 :background (sclr/color 140 140 140 50))
     }) 
 
 (def ^:private default-config-var
@@ -146,7 +153,11 @@
 	:wnow-value-style     {:foreground :white :font "ARIAL" :fontsz 48}
 	:date-txt-style       {:foreground :white :background :black :stroke 2 :font "ARIAL" :fontsz 192}
 	:exception-style      {:foreground :red   :font "ARIAL" :fontsz 64}
-   	:sun-txt-style        {:foreground :black :font "ARIAL-BOLD" :fontsz 36}
+   	:sun-txt-style        {:foreground :black :font "ARIAL" :fontsz 36}
+    :date-stroke-style    {:foreground :black :font "ARIAL" :fontsz 64 :stroke 1}
+    :date-fill-style      {:foreground :white :font "ARIAL" :fontsz 64 :stroke 1}
+    :bar-stroke-style     {:foreground :black :font "ARIAL" :fontsz 48 :stroke 1}
+  	:bar-fill-style       {:foreground :white :font "ARIAL" :fontsz 48 :stroke 1}
   	})
 
 ;;-----------------------------------------------------------------------------

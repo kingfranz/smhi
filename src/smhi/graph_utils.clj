@@ -16,7 +16,9 @@
                                 [core          :refer :all]
                                 [crop          :refer :all]
                                 [scale-methods :refer :all])
-              	(taoensso 		[timbre        :as log])))
+              	(taoensso 		[timbre        :as log]))
+     (:import 	(java.awt      Color Font FontMetrics GraphicsEnvironment)
+             	(java.awt.font TextLayout)))
 
 ;;-----------------------------------------------------------------------------
 
@@ -119,4 +121,22 @@
     (as-> image $
           (sg/image-shape 0 0 $)
           (sg/draw g2d $ nil)))
+
+;;-----------------------------------------------------------------------------
+
+(defn draw-outlined-char
+	[^java.awt.Graphics2D g2d fill-style stroke-style llx lly s]
+  	(let [outline (as-> s $
+                        (TextLayout. s (:font stroke-style) (.getFontRenderContext g2d))
+                        (.getOutline $ nil)
+		  		        (.createStrokedShape (:stroke stroke-style) $))]
+        (sg/draw g2d
+      		(sg/string-shape llx lly s)
+      		fill-style)
+        (sg/push g2d
+        	(-> g2d
+            	(sg/translate llx lly)
+            	(sg/draw outline stroke-style)))))
+
+;;-----------------------------------------------------------------------------
 

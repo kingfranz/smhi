@@ -102,8 +102,8 @@
               bkgrnd (load-background)
               bg-g2d (.createGraphics bkgrnd)]
             (weather-update width height)
-          	(inprint-img bg-g2d :#clock (get-pic :clock-pic))
-            (inprint bg-g2d :#clock 			  write-sun-info)
+          	;(inprint-img bg-g2d :#clock (get-pic :clock-pic))
+            ;(inprint bg-g2d :#clock 			  write-sun-info)
             (inprint bg-g2d :#left-axis 		  draw-left-axis)
             (inprint bg-g2d :#right-axis 		  draw-right-axis)
            	(doseq [day-idx (range (config :graph-days))]

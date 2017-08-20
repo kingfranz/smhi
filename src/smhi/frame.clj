@@ -3,6 +3,7 @@
                      			[forecast :refer :all]
               					[radar    :refer :all]
               					[draw     :refer :all]
+              					[clock    :refer [draw-clock]]
               					[config   :refer [config]])
               	(clj-time 		[core     :as t]
               					[format   :as f]

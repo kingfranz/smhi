@@ -42,6 +42,8 @@
     (log/debug txt " " (doall (for [e coll] (str e " "))))
     coll)
 
+;;-----------------------------------------------------------------------------
+
 (defn current-year
 	[]
 	(t/year (l/local-now)))
@@ -56,6 +58,23 @@
   	([dt]
    	(f/unparse (f/with-zone (f/formatters :hour-minute) (t/default-time-zone)) dt)))
 
+(defn now-str
+  	"return current dat & time as a string"
+    []
+    (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
+
+(defn date-str
+  	"return current dat as a string"
+    []
+    (f/unparse (f/with-zone (f/formatter "EEE yy-dd-MM") (t/default-time-zone)) (l/local-now)))
+
+(defn time-str
+  	"return current time as a string"
+    []
+    (f/unparse (f/with-zone (f/formatters :hour-minute-second) (t/default-time-zone)) (l/local-now)))
+
+;;-----------------------------------------------------------------------------
+
 (defn retry-func
   	[retries wait-sec func & opts]
    	(try
@@ -68,11 +87,6 @@
                 	(apply retry-func (dec retries) wait-sec func opts))))))
 
 ;;-----------------------------------------------------------------------------
-
-(defn now-str
-  	"return current dat & time as a string"
-    []
-    (f/unparse (f/with-zone (f/formatters :mysql) (t/default-time-zone)) (l/local-now)))
 
 (defn send-request*
     [url resp-type]
@@ -144,15 +158,25 @@
        		(prn "string-width:" g2d txt-style txt)
          	200)))
 
+;(defn string-height
+;  	"calculate height of string (in pixels)"
+;    [^java.awt.Graphics2D g2d txt-style]
+;    (if (and (some? g2d) (some? txt-style) (some? (:font txt-style)))
+;  		(.getHeight (.getFontMetrics g2d (:font txt-style)))
+;		(do
+;       		(prn "string-height" g2d txt-style)
+;         	200)))
+
 (defn string-height
   	"calculate height of string (in pixels)"
-    [^java.awt.Graphics2D g2d txt-style]
-    (if (and (some? g2d) (some? txt-style) (some? (:font txt-style)))
-  		(.getHeight (.getFontMetrics g2d (:font txt-style)))
-		(do
-       		(prn "string-height" g2d txt-style)
-         	200)))
-
+    [^java.awt.Graphics2D g2d txt-style txt]
+	(-> (TextLayout. txt
+                     (:font txt-style)
+                     (.getFontRenderContext g2d))
+        (.getOutline nil)
+        (.getBounds)
+		(.height)))
+		  
 (defn get-screens
     []
     (let [ge     (GraphicsEnvironment/getLocalGraphicsEnvironment)

@@ -47,7 +47,7 @@
           buffer-g2d   (.createGraphics buffer)
           time-txt     (hour-minute)
           time-width   (string-width buffer-g2d (config :radar-txt-style) time-txt)
-          time-height  (string-height buffer-g2d (config :radar-txt-style))]
+          time-height  (string-height buffer-g2d (config :radar-txt-style) time-txt)]
         (sg/draw buffer-g2d
           	(sg/image-shape 0 0 map-pic)
             nil)

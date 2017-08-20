@@ -23,28 +23,11 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn draw-clock
-  	"draw the clock"
-	[widget ^java.awt.Graphics2D g2d]
-	;(log/trace "draw-clock")
-    (try
-		(let [now    (l/local-now)
-	    	  sec    (t/second now)
-	    	  minute (+ (t/minute now) (/ sec 60.0))
-	    	  hour   (+ (* (mod (t/hour now) 12) 5) (* (/ minute 60.0) 5))]
-	    	(draw-image g2d (get-hourhand (int hour)))
-	    	(draw-image g2d (get-minutehand (int minute)))
-	    	(draw-image g2d (get-secondhand (int sec))))
-	    (catch Exception e
-	    	(log/error e))))
-
-;;-----------------------------------------------------------------------------
-
 (defn draw-text
   	"draw text with a circle background"
   	[^java.awt.Graphics2D g2d x y txt txt-style left-side]
   	(let [txt-width    (utils/string-width g2d txt-style txt)
-          txt-height   (utils/string-height g2d txt-style)
+          txt-height   (utils/string-height g2d txt-style txt)
           radius       (+ (/ txt-height 2) 4)
           circle-x     (if left-side (- x (/ radius 2) 5) (+ x (/ radius 2) 5))
           txt-y        (+ y (/ txt-height 4))
@@ -72,7 +55,7 @@
     [^java.awt.Graphics2D g2d width height e]
     (let [txt      (.getMessage e)
           t-width  (utils/string-width  g2d (config :exception-style) txt)
-          t-height (utils/string-height g2d (config :exception-style))]
+          t-height (utils/string-height g2d (config :exception-style) txt)]
         (sg/draw g2d
             (sg/string-shape (/ (- width t-width) 2)
                           (/ (- height t-height) 2)

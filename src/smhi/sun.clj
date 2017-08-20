@@ -82,7 +82,7 @@
               date-txt      (f/unparse (f/formatter "EEEE dd MMM") (l/local-now))
               date-width    (string-width g2d (config :sun-txt-style) date-txt)
               date-x        (- (half width) (half date-width))
-              text-height   (string-height g2d (config :sun-txt-style))
+              text-height   (string-height g2d (config :sun-txt-style) date-txt)
               mid-y         (half height)]
 			(sg/draw g2d
 				(sg/rounded-rect (- up-down-x (half (config :sun-box-dw)))

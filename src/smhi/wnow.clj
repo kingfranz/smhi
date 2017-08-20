@@ -50,21 +50,21 @@
   	"draw background, title and value for one section of now info"
   	[^java.awt.Graphics2D g2d width height title value]
   	(let [t-width       (string-width  g2d (config :wnow-title-style) title)
-          t-height      (string-height g2d (config :wnow-title-style))
+          t-height      (string-height g2d (config :wnow-title-style) title)
           v-width       (string-width  g2d (config :wnow-value-style) (str value))
-          v-height      (string-height g2d (config :wnow-value-style))
+          v-height      (string-height g2d (config :wnow-value-style) (str value))
           title-height  (* height (config :wnow-title-part))
           value-height  (* height (- 1 (config :wnow-title-part)))]
 	    ; draw top txt
 	    (sg/draw g2d
 	        (sg/string-shape (/ (- width t-width) 2)
-	                		 (+ (/ title-height 2) (/ t-height 2) (config :wnow-vt-adjust))
+	                		 (+ (/ title-height 2) (/ t-height 2))
 	                		 title)
 	        (config :wnow-title-style))
 	    ; draw bottom txt
 	    (sg/draw g2d
 	        (sg/string-shape (/ (- width v-width) 2)
-	                		 (+ title-height (/ value-height 2) (/ v-height 2) (config :wnow-vv-adjust))
+	                		 (+ title-height (/ value-height 2) (/ v-height 2))
 	                		 value)
 	        (config :wnow-value-style))))
 
