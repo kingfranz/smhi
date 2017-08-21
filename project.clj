@@ -1,4 +1,4 @@
-(defproject smhi "2.5.0"
+(defproject smhi "2.6.0"
   :description "SMHI weather clock"
   :url "http://smhi.se"
   :license {:name "Eclipse Public License"
@@ -12,7 +12,7 @@
                  [image-resizer "0.1.10"]
                  [org.clojure/tools.reader "1.0.5"]
                  [org.clojure/data.zip "0.1.2"]
-                 [async-watch "0.1.1"]
+                 [clojure-watch "0.1.13"]
                  [clj-time "0.14.0"]]
   :main ^:skip-aot smhi.core
   :target-path "target/%s"

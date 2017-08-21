@@ -31,22 +31,6 @@
                         arg-num)]
         (sc/move! the-frame :to [(:x (nth screens screen-num)) (:y (nth screens screen-num))])))
 
-(defn setup-config
-    []
-    ;(read-config-file)
-;    (log/info "starting watch")
-;    (let [changes (aw/changes-in ["./"])]
-;        (async/go (while true
-;            (let [[op filename] (<! changes)]
-;                ;; op will be one of :create, :modify or :delete
-;                (if (and (= op :modify) (= filename "./smhi-config.edn"))
-;                    (do
-;                        (log/info "smhi-config.edn updated")
-;                        (read-config-file)
-;                        (sc/repaint! (smhi-frame))))))))
-;    (log/info "after watch"))
-)
-
 (defn inprint
   	[g2d tag func & opt]
    	(let [widget (sc/select (smhi-frame) [tag])
@@ -54,7 +38,6 @@
           height (.getHeight widget)
           left-x (.getX widget)
           top-y  (.getY widget)]
-      	;(println "inprint:" tag left-x top-y width height)
       	(sg/push g2d
                  (as-> g2d $
                        (sg/translate $ left-x top-y)
@@ -65,7 +48,6 @@
    	(let [widget (sc/select (smhi-frame) [tag])
           left-x (.getX widget)
           top-y  (.getY widget)]
-      	;(println "WW" (.getWidth widget) "WH" (.getHeight widget) "WX" (.getX widget) "WY" (.getY widget))
       	(sg/push g2d
                  (as-> g2d $
                        (sg/translate $ left-x top-y)

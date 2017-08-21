@@ -66,7 +66,7 @@
 (defn date-str
   	"return current dat as a string"
     []
-    (f/unparse (f/with-zone (f/formatter "EEE yy-dd-MM") (t/default-time-zone)) (l/local-now)))
+    (f/unparse (f/with-zone (f/formatter "EEE yy-MM-dd") (t/default-time-zone)) (l/local-now)))
 
 (defn time-str
   	"return current time as a string"

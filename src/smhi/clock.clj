@@ -100,7 +100,7 @@
                             (config :bar-fill-style)
                             (config :bar-stroke-style)
                             (half (- width dbt-str-w))
-                            (calc-y :today-bar-y 0)
+                            (calc-y :today-bar-y 10)
                             dbt-str)
 	    ; draw day bar
      	(draw-bar g2d
@@ -116,7 +116,7 @@
                             (config :bar-fill-style)
                             (config :bar-stroke-style)
                             (half (- width mbt-str-w))
-                            (calc-y :month-bar-y 0)
+                            (calc-y :month-bar-y 10)
                             mbt-str)
 	    ; draw month bar
      	(draw-bar g2d
@@ -132,7 +132,7 @@
                             (config :bar-fill-style)
                             (config :bar-stroke-style)
                             (half (- width ybt-str-w))
-                            (calc-y :year-bar-y 0)
+                            (calc-y :year-bar-y 10)
                             ybt-str)
 	    ; draw year bar
      	(draw-bar g2d
@@ -147,7 +147,7 @@
 (defn draw-clock
   	"draw the clock"
 	[widget ^java.awt.Graphics2D g2d]
-	(if (< (mod (t/second (l/local-now)) 10) 5)
+	(if (< (mod (t/second (l/local-now)) (* (config :clock-switch-sec) 2)) (config :clock-switch-sec))
    		(draw-analog widget g2d)
      	(draw-digital widget g2d)))
  

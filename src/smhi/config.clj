@@ -1,14 +1,15 @@
 (ns smhi.config
-	(:require 	(clojure.tools.reader 	[edn      :as edn])
-				(seesaw 				[core     :as sc]
-				 						[border   :as sb]
-				 						[graphics :as sg]
-				 						[color    :as sclr]
-				 						[font     :as sf])
+	(:require 	(clojure.tools.reader 	[edn           :as edn])
+				(seesaw 				[core          :as sc]
+				 						[border        :as sb]
+				 						[graphics      :as sg]
+				 						[color         :as sclr]
+				 						[font          :as sf])
             	(clojure.math 			[numeric-tower :as math])
-                (taoensso               [timbre      :as log])
-    			(clojure				[pprint   :as pp]
-                    					[string   :as str])))
+                (taoensso               [timbre        :as log])
+                (clojure-watch          [core          :refer [start-watch]])
+    			(clojure				[pprint        :as pp]
+                    					[string        :as str])))
 
 ;;-----------------------------------------------------------------------------
 
@@ -110,10 +111,11 @@
 	:twilight-end               :civil_twilight_end
     :wnow-title-part            1/3
     
+    :clock-switch-sec           10
     :bar-width-percent			0.80
     :bar-height-percent			0.10
-    :date-str-y					0.20
-    :time-str-y					0.30
+    :date-str-y					0.23
+    :time-str-y					0.37
     :today-bar-y				0.40
     :month-bar-y				0.60
     :year-bar-y					0.80
@@ -154,10 +156,10 @@
 	:date-txt-style       {:foreground :white :background :black :stroke 2 :font "ARIAL" :fontsz 192}
 	:exception-style      {:foreground :red   :font "ARIAL" :fontsz 64}
    	:sun-txt-style        {:foreground :black :font "ARIAL" :fontsz 36}
-    :date-stroke-style    {:foreground :black :font "ARIAL" :fontsz 64 :stroke 1}
-    :date-fill-style      {:foreground :white :font "ARIAL" :fontsz 64 :stroke 1}
-    :bar-stroke-style     {:foreground :black :font "ARIAL" :fontsz 48 :stroke 1}
-  	:bar-fill-style       {:foreground :white :font "ARIAL" :fontsz 48 :stroke 1}
+    :date-stroke-style    {:foreground :black :font "ARIAL-BOLD" :fontsz 96 :stroke 1}
+    :date-fill-style      {:foreground :white :font "ARIAL-BOLD" :fontsz 96 :stroke 1}
+    :bar-stroke-style     {:foreground :black :font "ARIAL-BOLD" :fontsz 64 :stroke 1}
+  	:bar-fill-style       {:foreground :white :font "ARIAL-BOLD" :fontsz 64 :stroke 1}
   	})
 
 ;;-----------------------------------------------------------------------------
@@ -166,31 +168,31 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn horiz-res       [] (math/round (* std-horizontal-res (:horizontal-scale @config-store))))
-(defn vert-res        [] (math/round (* std-vertical-res (:vertical-scale @config-store))))
-(defn graphics-width  [] (math/round (horiz-res)))
-(defn graphics-height [] (math/round (* (vert-res) 1/3)))
-(defn clock-width     [] (math/round (* (vert-res) 2/3)))
-(defn clock-height    [] (math/round (* (vert-res) 2/3)))
-(defn radar-width     [] (math/round (- (horiz-res) (clock-width))))
-(defn radar-height    [] (math/round (* (clock-height) 2/3)))
-(defn wnow-width      [] (math/round (/ (radar-width) 5)))
-(defn wnow-height     [] (math/round (/ (- (vert-res) (graphics-height) (radar-height)) 2)))
+(defn- horiz-res       [] (math/round (* std-horizontal-res (:horizontal-scale @config-store))))
+(defn- vert-res        [] (math/round (* std-vertical-res (:vertical-scale @config-store))))
+(defn- graphics-width  [] (math/round (horiz-res)))
+(defn- graphics-height [] (math/round (* (vert-res) 1/3)))
+(defn- clock-width     [] (math/round (* (vert-res) 2/3)))
+(defn- clock-height    [] (math/round (* (vert-res) 2/3)))
+(defn- radar-width     [] (math/round (- (horiz-res) (clock-width))))
+(defn- radar-height    [] (math/round (* (clock-height) 2/3)))
+(defn- wnow-width      [] (math/round (/ (radar-width) 5)))
+(defn- wnow-height     [] (math/round (/ (- (vert-res) (graphics-height) (radar-height)) 2)))
 
-(defn scale-v
+(defn- scale-v
   	[hscale vscale bscale {dir :dir value :value}]
     (cond
 		(= dir :horizontal) (math/round (* value hscale))
 		(= dir :vertical)   (math/round (* value vscale))
 		:else               (math/round (* value bscale))))
 
-(defn do-upd
+(defn- do-upd
   	[s value k]
     (if (some? (get value k))
       	(sg/update-style s k (get value k))
        	s))
 
-(defn mk-style
+(defn- mk-style
   	[value bscale]
     ;(println "mk-style:" (str (:font value) "-" (int (* (:fontsz value) bscale))))
 	(-> (sg/style :font (str (:font value) "-" (math/round (* (:fontsz value) bscale))))
@@ -281,13 +283,13 @@
   	[value]
     (sf/font (:font value)))
 
-(defn write-config
+(defn- write-config
   	[]
    	(log/trace "write-config ENTER")
-   	(spit config-name (with-out-str (prn {
+   	(spit config-name (prn-str {
 		:fixed (convert-config default-config-fixed)
   		:vars  (convert-config default-config-var)
-    	:style (convert-config default-config-style)})))
+    	:style (convert-config default-config-style)}))
     (log/trace "write-config EXIT")
    	)
 
@@ -295,7 +297,7 @@
   	[]
     (spit "cdump.edn" (with-out-str (pp/pprint @config-store))))
 
-(defn load-config
+(defn- load-config
   	[]
     (log/trace "load-config ENTER")
    	(write-config)
@@ -314,13 +316,31 @@
     (log/trace "load-config EXIT")
    	)
 
-(defn load-default-config
+(defn- load-default-config
   	[]
    	(log/trace "load-default-config ENTER")
    	(let [vars   (into {} (map (fn [[k v]] [k (scale-v 1 1 1 v)]) default-config-var))
           styles (into {} (map (fn [[k v]] [k (mk-style v 1)]) default-config-style))]
       	(reset! config-store (merge default-config-fixed vars styles)))
     (log/trace "load-default-config EXIT"))
+
+(defn- setup-config
+    []
+    (log/info "starting watch")
+    (start-watch [{
+        :path "./"
+        :event-types [:modify]
+        :bootstrap (fn [path]
+            (try
+	         	(load-config)
+	          	(catch Exception _ (load-default-config))))
+        :callback (fn [event filename]
+            (when (= filename (str "./" config-name))
+              	(try
+	         		(load-config)
+	          		(catch Exception _ (load-default-config)))))
+        :options {:recursive false}}])
+    (log/info "after watch"))
 
 (def ^:private data-lock (Object.))
 
@@ -331,9 +351,7 @@
     ;(log/trace "config" kw (nil? @config-store) (some-> @config-store (get kw)))
    	(locking data-lock
       	(when (nil? @config-store)
-	      	(try
-	         	(load-config)
-	          	(catch Exception e (load-default-config)))))
+	      	(setup-config)))
     (cond
       	(some? (get @config-store kw)) (get @config-store kw)
        	(= kw :horiz-res)       (horiz-res)
