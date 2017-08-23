@@ -71,11 +71,12 @@
 (defn- draw-axis-txt
   	[g2d x max-y style f draw-left]
     (doseq [text-idx (range 2 (config :axis-span) 2)]
-      	(draw-text g2d (+ x (if draw-left (neg (config :tick-width)) (config :tick-width)))
-             		   (- max-y (* text-idx (/ (inc max-y) (config :axis-span))))
-             		   (str (int (f text-idx)))
-             		   (config style)
-             		   true)))
+      	(draw-text-circle g2d
+                          (+ x (if draw-left (neg (config :tick-width)) (config :tick-width)))
+             		      (- max-y (* text-idx (/ (inc max-y) (config :axis-span))))
+             		      (str (int (f text-idx)))
+             		      (config style)
+             		      true)))
 
 (defn draw-left-axis
   	"draw axises for forecast graphics (and scales)"

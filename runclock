@@ -1,6 +1,0 @@
-#!/bin/sh
-cd /var/smhi
-NOW=$(date +"%FT%H:%M:%S")
-LOGFILE="smhi-$NOW.log"
-env > $LOGFILE
-/usr/bin/java -jar /var/smhi/smhi-1.1.0-standalone.jar 1 >> $LOGFILE 2>&1

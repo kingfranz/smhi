@@ -1,1 +1,103 @@
-{:fixed {:min-fixed-temp -20, :wnow-vv-adjust -19, :category "pmp2g", :radar-url "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png", :today-bar-y 0.4, :wind-padding 2, :date-str-y 0.23, :weather-timer-initial-sec 0, :zero-line-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [255 255 255 255], :stroke 1.0, :font ""}, :forecast-bg #smhi.config.SMHIColor{:color [128 128 128 128]}, :radar-interval-minutes 5, :day-style #smhi.config.SMHIStyle{:foreground [0 0 0 255], :background [], :stroke 3.0, :font "ARIAL-192"}, :widget-style #smhi.config.SMHIColor{:color [32 32 32 0]}, :year-bar-y 0.8, :clock-fps 1, :temp-padding 5, :twilight-begin :civil_twilight_begin, :radar-sub-center-x 166, :day-outline-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [], :stroke 3.0, :font "ARIAL-192"}, :radar-timer-initial-sec 0, :graph-days 7, :info-bg-style #smhi.config.SMHIStyle{:foreground [32 32 32 255], :background [128 128 128 128], :stroke 2.0, :font ""}, :smhi-timeout 5000, :symbols-per-day 3, :axis-span 10, :sun-box-style #smhi.config.SMHIStyle{:foreground [0 0 0 255], :background [140 140 140 255], :stroke 2.0, :font ""}, :month-bar-y 0.6, :time-str-y 0.37, :background-dir "backgrounds/", :radar-sub-width 112, :longitude 14.26502, :wnow-title-part 1/3, :day-stroke-width 3, :radar-sub-center-y 1235/2, :wnow-vt-adjust -3, :max-fixed-temp 30, :cloud-style #smhi.config.SMHIStyle{:foreground [144 238 144 255], :background [144 238 144 255], :stroke 10.0, :font ""}, :horizontal-scale 1.0, :bar-height-percent 0.1, :twilight-end :civil_twilight_end, :image-dir "images/", :degree-char "°", :wind-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [211 211 211 255], :stroke 1.0, :font ""}, :bar-width-percent 0.8, :day-tick-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [255 255 255 255], :stroke 1.0, :font ""}, :rain-style #smhi.config.SMHIStyle{:foreground [0 0 255 255], :background [255 0 0 255], :stroke 1.0, :font ""}, :text-circle-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [255 255 255 255], :stroke 1.0, :font ""}, :max-rain-level 3, :bar-style #smhi.config.SMHIStyle{:foreground [128 128 128 255], :background [140 140 140 50], :stroke 4.0, :font ""}, :axis-width 2, :day-red-style #smhi.config.SMHIStyle{:foreground [255 0 0 255], :background [], :stroke 3.0, :font "ARIAL-192"}, :clock-delay-sec 6, :radar-ani-delay-sec 2, :latitude 58.786869, :temp-style #smhi.config.SMHIStyle{:foreground [255 0 0 255], :background [255 0 0 255], :stroke 8.0, :font ""}, :weather-url "http://opendata-download-metfcst.smhi.se", :image-cache-dir "image-cache/", :weather-timer-delay-min 30, :master-map {:filename "master-map.jpg", :center-x 2187, :center-y 11615, :width 2100}, :wind-axis-factor 3, :radar-ani-hours 5, :version "2", :clock-switch-sec 10, :vertical-scale 1.0, :right-axis-extra 30, :radar-width-long 3.2, :radar-fps 10, :axis-style #smhi.config.SMHIStyle{:foreground [255 255 255 255], :background [255 255 255 255], :stroke 2.0, :font ""}}, :vars {:date-dy {:dir :vertical, :value -100}, :radar-txt-y {:dir :vertical, :value 140}, :up-down-dy {:dir :vertical, :value 100}, :sun-box-radius {:dir :both, :value 50}, :wnow-side-border {:dir :horizontal, :value 10}, :sun-box-dw {:dir :horizontal, :value 50}, :radar-border-size {:dir :both, :value 10}, :small-symbol-sz {:dir :both, :value 50}, :radar-txt-x {:dir :horizontal, :value 220}, :right-axis-width {:dir :horizontal, :value 50}, :wnow-bottom-border {:dir :vertical, :value 14}, :week-dy {:dir :vertical, :value -180}, :wnow-top-border {:dir :vertical, :value 9}, :sun-box-dy {:dir :vertical, :value 40}, :tick-width {:dir :horizontal, :value 10}, :left-axis-width {:dir :horizontal, :value 100}, :wnow-center-border {:dir :vertical, :value 6}, :sun-box-dh {:dir :vertical, :value 15}, :wnow-radius {:dir :both, :value 10}}, :style {:bar-stroke-style {:foreground :black, :font "ARIAL-BOLD", :fontsz 64, :stroke 1}, :bar-fill-style {:foreground :white, :font "ARIAL-BOLD", :fontsz 64, :stroke 1}, :date-stroke-style {:foreground :black, :font "ARIAL-BOLD", :fontsz 96, :stroke 1}, :wnow-value-style {:foreground :white, :font "ARIAL", :fontsz 48}, :wnow-title-style {:foreground :white, :font "ARIAL", :fontsz 18}, :wind-axis-text-style {:foreground :grey, :background :grey, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}, :temp-axis-text-style {:foreground :red, :background :red, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}, :date-txt-style {:foreground :white, :background :black, :stroke 2, :font "ARIAL", :fontsz 192}, :radar-txt-style {:foreground :black, :font "ARIAL-BOLD", :fontsz 64}, :sun-txt-style {:foreground :black, :font "ARIAL", :fontsz 36}, :date-fill-style {:foreground :white, :font "ARIAL-BOLD", :fontsz 96, :stroke 1}, :exception-style {:foreground :red, :font "ARIAL", :fontsz 64}, :rain-axis-text-style {:foreground :blue, :background :blue, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}}}
+{
+    :axis-radius                ^{:dir :both} {:value 17}
+    :axis-span                  10
+    :axis-style                 ^{:seesaw :style} {:foreground :white, :background :white, :stroke 2}
+    :axis-width                 2
+    :background-dir             "backgrounds/"
+    :bar-fill-style             ^{:seesaw :style} {:foreground :white, :font "ARIAL-BOLD", :fontsz 64, :stroke 1}
+    :bar-height-percent         0.1
+    :bar-stroke-style           ^{:seesaw :style} {:foreground :black, :font "ARIAL-BOLD", :fontsz 64, :stroke 1}
+    :bar-style                  ^{:seesaw :style} {:foreground :grey, :stroke 4, :background ^{:seesaw :color} [140 140 140 50]}
+    :bar-width-percent          0.8
+    :category                   "pmp2g"
+    :clock-delay-sec            6
+    :clock-fps                  1
+    :clock-switch-sec           10
+    :cloud-style                ^{:seesaw :style} {:foreground :lightgreen, :background :lightgreen, :stroke 10}
+    :date-dy                    ^{:dir :vertical} {:value -100}
+    :date-fill-style            ^{:seesaw :style} {:foreground :white, :font "ARIAL-BOLD", :fontsz 80, :stroke 1}
+    :date-str-y                 0.23
+    :date-stroke-style          ^{:seesaw :style} {:foreground :black, :font "ARIAL-BOLD", :fontsz 80, :stroke 1}
+    :date-txt-style             ^{:seesaw :style} {:foreground :white, :background :black, :stroke 2, :font "ARIAL", :fontsz 192}
+    :day-outline-style          ^{:seesaw :style} {:foreground :white, :stroke 3, :font "ARIAL", :fontsz 192}
+    :day-red-style              ^{:seesaw :style} {:foreground :red, :stroke 3, :font "ARIAL", :fontsz 192}
+    :day-stroke-width           3
+    :day-style                  ^{:seesaw :style} {:foreground :black, :stroke 3, :font "ARIAL", :fontsz 192}
+    :day-tick-style             ^{:seesaw :style} {:foreground :white, :background :white, :stroke 1}
+    :degree-char                "°"
+    :exception-style            ^{:seesaw :style} {:foreground :red, :font "ARIAL", :fontsz 64}
+    :forecast-bg                ^{:seesaw :color} [128 128 128 128]
+    :graph-days                 7
+    :horizontal-scale           1.0
+    :image-cache-dir            "image-cache/"
+    :image-dir                  "images/"
+    :info-bg-style              ^{:seesaw :style} {:foreground ^{:seesaw :color} [32 32 32], :stroke 2, :background ^{:seesaw :color} [128 128 128 128]}
+    :latitude                   58.786869
+    :left-axis-width            ^{:dir :horizontal} {:value 100}
+    :longitude                  14.26502
+    :master-map                 {:filename "master-map.jpg", :center-x 2187, :center-y 11615, :width 2100}
+    :max-fixed-temp             30
+    :max-rain-level             3
+    :min-fixed-temp             -20
+    :month-bar-y                0.6
+    :radar-ani-delay-sec        2
+    :radar-ani-hours            5
+    :radar-border-size          ^{:dir :both} {:value 10}
+    :radar-fps                  10
+    :radar-interval-minutes     5
+    :radar-sub-center-x         166
+    :radar-sub-center-y         1235/2
+    :radar-sub-width            112
+    :radar-timer-initial-sec    0
+    :radar-txt-style            ^{:seesaw :style} {:foreground :black, :font "ARIAL-BOLD", :fontsz 64}
+    :radar-txt-x                ^{:dir :horizontal} {:value 20}
+    :radar-txt-y                ^{:dir :vertical} {:value 20}
+    :radar-url                  "http://opendata-download-radar.smhi.se/api/version/latest/area/sweden/product/comp/latest.png"
+    :radar-width-long           3.2
+    :rain-axis-text-style       ^{:seesaw :style} {:foreground :blue, :background :blue, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}
+    :rain-style                 ^{:seesaw :style} {:foreground :blue, :background :red, :stroke 1}
+    :right-axis-extra           30
+    :right-axis-width           ^{:dir :horizontal} {:value 50}
+    :small-symbol-sz            ^{:dir :both} {:value 50}
+    :smhi-timeout               5000
+    :sun-box-dh                 ^{:dir :vertical} {:value 15}
+    :sun-box-dw                 ^{:dir :horizontal} {:value 50}
+    :sun-box-dy                 ^{:dir :vertical} {:value 40}
+    :sun-box-radius             ^{:dir :both} {:value 50}
+    :sun-box-style              ^{:seesaw :style} {:foreground :black, :stroke 2, :background ^{:seesaw :color} [140 140 140]}
+    :sun-txt-style              ^{:seesaw :style} {:foreground :black, :font "ARIAL", :fontsz 36}
+    :symbols-per-day            3
+    :temp-axis-text-style       ^{:seesaw :style} {:foreground :red, :background :red, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}
+    :temp-padding               5
+    :temp-style                 ^{:seesaw :style} {:foreground :red, :background :red, :stroke 8}
+    :text-circle-style          ^{:seesaw :style} {:foreground :white, :background :white, :stroke 1}
+    :tick-width                 ^{:dir :horizontal} {:value 15}
+    :time-str-y                 0.37
+    :today-bar-y                0.4
+    :twilight-begin             :civil_twilight_begin
+    :twilight-end               :civil_twilight_end
+    :up-down-dy                 ^{:dir :vertical} {:value 100}
+    :version                    "2"
+    :vertical-scale             1.0
+    :weather-timer-delay-min    30
+    :weather-timer-initial-sec  0
+    :weather-url                "http://opendata-download-metfcst.smhi.se"
+    :week-dy                    ^{:dir :vertical} {:value -180}
+    :widget-style               ^{:seesaw :color} [32 32 32 0]
+    :wind-axis-factor           3
+    :wind-axis-text-style       ^{:seesaw :style} {:foreground :grey, :background :grey, :stroke 1, :font "ARIAL-BOLD", :fontsz 20}
+    :wind-padding               2
+    :wind-style                 ^{:seesaw :style} {:foreground :white, :background :lightgray, :stroke 1}
+    :wnow-bottom-border         ^{:dir :vertical} {:value 10}
+    :wnow-center-border         ^{:dir :vertical} {:value 5}
+    :wnow-radius                ^{:dir :both} {:value 10}
+    :wnow-side-border           ^{:dir :horizontal} {:value 8}
+    :wnow-title-part            1/3
+    :wnow-title-style           ^{:seesaw :style} {:foreground :white, :font "ARIAL", :fontsz 18}
+    :wnow-top-border            ^{:dir :vertical} {:value 6}
+    :wnow-value-style           ^{:seesaw :style} {:foreground :white, :font "ARIAL", :fontsz 48}
+    :wnow-vt-adjust             -3
+    :wnow-vv-adjust             -19
+    :year-bar-y                 0.8
+    :zero-line-style            ^{:seesaw :style} {:foreground :white, :background :white, :stroke 1}
+}

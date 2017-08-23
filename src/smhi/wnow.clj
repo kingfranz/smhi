@@ -22,60 +22,55 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn- draw-wnow-box
+(defn- draw-wnow-txtbox
   	"draw background, title and value for one section of now info"
-  	[^java.awt.Graphics2D g2d width height]
-  	(let [title-height (* height (config :wnow-title-part))
-          value-height (* height (- 1 (config :wnow-title-part)))]
-	    ; draw top sq
+  	[^java.awt.Graphics2D g2d ulx uly width height txt style]
+  	(let [txt-width  (string-width  g2d style txt)
+          txt-height (string-height g2d style txt)]
+	    ; draw sq
 	    (sg/draw g2d
-	      	(sg/rounded-rect (config :wnow-side-border)
-	              			 (config :wnow-top-border)
-	              			 (- width (* (config :wnow-side-border) 2))
-	              			 (- title-height (config :wnow-top-border) (config :wnow-center-border))
+	      	(sg/rounded-rect ulx
+	              			 uly
+	              			 width
+	              			 height
 	              			 (config :wnow-radius)
                    			 (config :wnow-radius))
 	      	(config :info-bg-style))
-	    ; draw bottom sq
+	    ; draw text
 	    (sg/draw g2d
-	      	(sg/rounded-rect (config :wnow-side-border)
-	              			 title-height
-	              			 (- width (* (config :wnow-side-border) 2))
-	              			 (- value-height (config :wnow-bottom-border))
-	              			 (config :wnow-radius)
-                   			 (config :wnow-radius))
-	      	(config :info-bg-style))))
-
-(defn- draw-wnow-txt
-  	"draw background, title and value for one section of now info"
-  	[^java.awt.Graphics2D g2d width height title value]
-  	(let [t-width       (string-width  g2d (config :wnow-title-style) title)
-          t-height      (string-height g2d (config :wnow-title-style) title)
-          v-width       (string-width  g2d (config :wnow-value-style) (str value))
-          v-height      (string-height g2d (config :wnow-value-style) (str value))
-          title-height  (* height (config :wnow-title-part))
-          value-height  (* height (- 1 (config :wnow-title-part)))]
-	    ; draw top txt
-	    (sg/draw g2d
-	        (sg/string-shape (/ (- width t-width) 2)
-	                		 (+ (/ title-height 2) (/ t-height 2))
-	                		 title)
-	        (config :wnow-title-style))
-	    ; draw bottom txt
-	    (sg/draw g2d
-	        (sg/string-shape (/ (- width v-width) 2)
-	                		 (+ title-height (/ value-height 2) (/ v-height 2))
-	                		 value)
-	        (config :wnow-value-style))))
+	        (sg/string-shape (+ ulx (/ (- width txt-width) 2))
+	                		 (+ uly (/ height 2) (/ txt-height 2))
+	                		 txt)
+	        style)))
 
 (defn- draw-wnow-info
   	"draw all the parts of the now info"
   	[^java.awt.Graphics2D g2d width height title value]
   	(try
-     	(draw-wnow-box g2d width height)
-    	(if (some? @weather-data)
-      		(draw-wnow-txt g2d width height title value)
-      		(draw-wnow-txt g2d width height title "---"))
+     	;(draw-wnow-box g2d width height)
+    	(when (some? @weather-data)
+      		(let [sq-width (- width (* (config :wnow-side-border) 2))
+              	  split-y  (* height (config :wnow-title-part))
+                  half-center (/ (config :wnow-center-border) 2)]
+          		(draw-wnow-txtbox g2d
+                              	  (config :wnow-side-border)
+                                  (config :wnow-top-border)
+                                  sq-width
+                                  (- split-y
+                                     (config :wnow-top-border)
+                                     half-center)
+                                  title
+                                  (config :wnow-title-style))
+            	(draw-wnow-txtbox g2d
+                               	  (config :wnow-side-border)
+                                  (+ split-y half-center)
+                                  sq-width
+                                  (- height
+                                     split-y
+                                     (config :wnow-bottom-border)
+                                     half-center)
+                                  (str value)
+                                  (config :wnow-value-style))))
     	(catch Exception e
       		(log/error e))))
 

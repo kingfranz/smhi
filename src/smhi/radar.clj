@@ -63,8 +63,8 @@
           	(sg/scale     buffer-g2d width-ratio height-ratio)
         	(sg/draw      buffer-g2d (sg/image-shape 0 0 sub-radar) nil))
         (sg/draw buffer-g2d
-            (sg/string-shape (- (config :radar-txt-x) time-width)
-                             (- (config :radar-txt-y) time-height)
+            (sg/string-shape (config :radar-txt-x)
+                             (+ (config :radar-txt-y) time-height)
                              time-txt)
             (config :radar-txt-style))
         buffer))

@@ -1,5 +1,5 @@
 (ns smhi.draw
-    (:require 	(smhi 			[utils         :as utils]
+    (:require 	(smhi 			[utils         :refer :all]
               					[graph-utils   :refer :all]
               					[images        :refer :all]
               					[config        :refer [config]])
@@ -23,17 +23,18 @@
 
 ;;-----------------------------------------------------------------------------
 
-(defn draw-text
+(defn draw-text-circle
   	"draw text with a circle background"
   	[^java.awt.Graphics2D g2d x y txt txt-style left-side]
-  	(let [txt-width    (utils/string-width g2d txt-style txt)
-          txt-height   (utils/string-height g2d txt-style txt)
-          radius       (+ (/ txt-height 2) 4)
-          circle-x     (if left-side (- x (/ radius 2) 5) (+ x (/ radius 2) 5))
-          txt-y        (+ y (/ txt-height 4))
-          txt-x        (- circle-x (/ txt-width 2))]
+  	(let [txt-width  (string-width g2d txt-style txt)
+          txt-height (string-height g2d txt-style txt)
+          circle-x   (if left-side
+                         (- x (/ (config :axis-radius) 2))
+                         (+ x (/ (config :axis-radius) 2)))
+          txt-y      (+ y (/ txt-height 2))
+          txt-x      (- circle-x (/ txt-width 2))]
 	    (sg/draw g2d
-	        (sg/circle circle-x y radius)
+	        (sg/circle circle-x y (config :axis-radius))
 	        (config :text-circle-style))
 	    (sg/draw g2d
 	        (sg/string-shape txt-x txt-y txt)
@@ -54,8 +55,8 @@
 (defn draw-exception-txt
     [^java.awt.Graphics2D g2d width height e]
     (let [txt      (.getMessage e)
-          t-width  (utils/string-width  g2d (config :exception-style) txt)
-          t-height (utils/string-height g2d (config :exception-style) txt)]
+          t-width  (string-width  g2d (config :exception-style) txt)
+          t-height (string-height g2d (config :exception-style) txt)]
         (sg/draw g2d
             (sg/string-shape (/ (- width t-width) 2)
                           (/ (- height t-height) 2)
