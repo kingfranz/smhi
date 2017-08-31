@@ -144,10 +144,64 @@
                   year-frac)
       ))
 
+(defn draw-segment
+  	[^java.awt.Graphics2D g2d cx cy r-inner r-outer s-angle e-angle fg bg]
+    (let [o-ulx  (- cx r-outer)
+          o-uly  (- cy r-outer)
+          o-side (* r-outer 2)
+          i-ulx  (- cx r-inner)
+          i-uly  (- cy r-inner)
+          i-side (* r-inner 2)
+          o-pie  (sg/pie o-ulx o-uly o-side o-side s-angle e-angle)
+          i-pie  (sg/pie i-ulx i-uly i-side i-side s-angle e-angle)
+          o-area (java.awt.geom.Area. o-pie)
+          i-area (java.awt.geom.Area. i-pie)]
+      	;(sg/draw g2d
+        ; 	(sg/circle cx cy r-outer)
+        ;  	(sg/style :foreground bg))
+        (.subtract o-area i-area)
+        (.setPaint g2d (sclr/color :black))
+        (.setStroke g2d (sg/stroke :width 2))
+      	(.draw g2d o-area)
+        (.setPaint g2d fg)
+      	(.fill g2d o-area)))
+
+(defn draw-sttng*
+  	[widget ^java.awt.Graphics2D g2d out-r w frac fg]
+    (let [width      (.getWidth widget)
+          height     (.getHeight widget)
+          ]
+      	(draw-segment g2d
+                      (/ width 2)
+                      (/ height 2)
+                      (* (/ width 2) (- out-r w))
+                      (* (/ width 2) out-r)
+                      90
+                      (neg (* frac 360))
+                      fg
+                      (sclr/color 0 0 0 0))))
+
+(defn draw-sttng
+  	[widget ^java.awt.Graphics2D g2d]
+    (let [second-frac (/ (t/second (l/local-now)) 60)
+          minute-frac (/ (t/minute (l/local-now)) 60)
+          hour-frac   (/ (t/hour (l/local-now))   24)
+          day-frac    (/ (t/in-seconds (t/interval (t/with-time-at-start-of-day (l/local-now)) (l/local-now)))
+                         (* 24 60 60))
+          month-frac  (/ (t/day (l/local-now))    (t/number-of-days-in-the-month (l/local-now)))
+          year-frac   (/ (t/month (l/local-now))  12)]
+      	(draw-sttng* widget g2d 0.90 0.08 year-frac   (sclr/color   0   0 204))
+       	(draw-sttng* widget g2d 0.77 0.08 month-frac  (sclr/color   1 102 255))
+       	(draw-sttng* widget g2d 0.64 0.08 day-frac    (sclr/color 128 128 128))
+       	(draw-sttng* widget g2d 0.51 0.08 hour-frac   (sclr/color 205 135  13))
+       	(draw-sttng* widget g2d 0.38 0.08 minute-frac (sclr/color 204   0   1))
+       	(draw-sttng* widget g2d 0.26 0.08 second-frac (sclr/color 254   0   1))
+       	))
+
 (defn draw-clock
   	"draw the clock"
 	[widget ^java.awt.Graphics2D g2d]
 	(if (< (mod (t/second (l/local-now)) (* (config :clock-switch-sec) 2)) (config :clock-switch-sec))
    		(draw-analog widget g2d)
-     	(draw-digital widget g2d)))
+     	(draw-sttng widget g2d)))
  
